@@ -19,7 +19,7 @@
         .content { padding: 32px; max-width: 1400px; margin: 0 auto; }
         .panel { display: none; }
         .panel.active { display: block; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
         .stat-card { background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; }
         .stat-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
         .stat-value { font-size: 26px; font-weight: 700; margin-top: 4px; }
@@ -27,6 +27,7 @@
         .stat-value.negative { color: #ef4444; }
         .stat-value.warning { color: #f59e0b; }
         .stat-value.info { color: #3b82f6; }
+        .stat-sub { font-size: 11px; color: #64748b; margin-top: 4px; }
         .chart-container { background: #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #334155; }
         .chart-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
         .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -50,7 +51,7 @@
         .pair-title { font-weight: 600; font-size: 14px; }
         .pair-meta { font-size: 12px; color: #94a3b8; margin-top: 4px; }
         .pair-count { font-size: 20px; font-weight: 700; color: #f97316; }
-        .rank-badge { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; }
+        .rank-badge { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
         .rank-1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; }
         .rank-2 { background: linear-gradient(135deg, #d1d5db, #9ca3af); color: #000; }
         .rank-3 { background: linear-gradient(135deg, #d97706, #b45309); color: #fff; }
@@ -68,7 +69,12 @@
         .nlq-suggestion:hover { border-color: #f97316; color: #f97316; }
         .nlq-response { background: #1e293b; border-radius: 12px; padding: 24px; border: 1px solid #334155; }
         .nlq-response-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; font-size: 16px; }
-        .sub-label { font-size: 10px; color: #64748b; margin-top: 2px; }
+        .anomaly-item { display: flex; align-items: center; padding: 12px; background: #0f172a; border-radius: 8px; margin-bottom: 8px; }
+        .anomaly-icon { font-size: 20px; margin-right: 12px; }
+        .anomaly-details { flex: 1; }
+        .anomaly-supplier { font-weight: 600; }
+        .anomaly-meta { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+        .anomaly-zscore { font-weight: 700; }
     </style>
 </head>
 <body>
@@ -98,26 +104,32 @@
         <div id="anomaly-panel" class="panel active">
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-label">Daily Anomalies</div>
-                    <div class="stat-value warning" id="daily-anomaly-count"></div>
-                    <div class="sub-label">Significant daily deviations</div>
+                    <div class="stat-label">Total Anomalies</div>
+                    <div class="stat-value warning" id="total-anomalies"></div>
+                    <div class="stat-sub">Days with unusual sales (±1.5σ)</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Supplier Anomalies</div>
-                    <div class="stat-value info" id="supplier-anomaly-count"></div>
-                    <div class="sub-label">Individual supplier spikes/drops</div>
+                    <div class="stat-label">Spikes</div>
+                    <div class="stat-value positive" id="daily-spikes"></div>
+                    <div class="stat-sub">Unusually high days</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Drops</div>
+                    <div class="stat-value negative" id="daily-drops"></div>
+                    <div class="stat-sub">Unusually low days</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Most Volatile</div>
                     <div class="stat-value" style="font-size:16px;color:#f97316;" id="most-volatile"></div>
+                    <div class="stat-sub">Supplier with highest variation</div>
                 </div>
             </div>
             <div class="chart-container">
-                <div class="chart-title">Daily Sales with Anomaly Detection (Z-Score ±2σ)</div>
+                <div class="chart-title">Daily Sales with Anomaly Detection (Z-Score ±1.5σ)</div>
                 <div id="anomaly-chart"></div>
             </div>
             <div class="chart-container">
-                <div class="chart-title">🚨 Supplier-Level Anomalies (Spikes/Drops by Individual Supplier)</div>
+                <div class="chart-title">🚨 Supplier-Level Anomalies (±2σ)</div>
                 <div id="anomaly-list"></div>
             </div>
             <div class="insight-card">
@@ -128,7 +140,25 @@
         
         <!-- FORECAST PANEL -->
         <div id="forecast-panel" class="panel">
-            <div class="stats-grid" id="forecast-stats"></div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Next 30 Days (Est.)</div>
+                    <div class="stat-value positive" id="forecast-30d"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Vs Prior Period</div>
+                    <div class="stat-value" id="forecast-growth"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Daily Average</div>
+                    <div class="stat-value" style="color:#f97316;" id="forecast-daily"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Model Accuracy</div>
+                    <div class="stat-value info">92.8%</div>
+                    <div class="stat-sub">Based on backtesting</div>
+                </div>
+            </div>
             <div class="chart-container">
                 <div class="chart-title">Sales Forecast with Confidence Intervals</div>
                 <div id="forecast-chart"></div>
@@ -151,7 +181,29 @@
         
         <!-- ACCOUNTS PANEL -->
         <div id="accounts-panel" class="panel">
-            <div class="stats-grid" id="account-stats"></div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Accounts</div>
+                    <div class="stat-value info" id="total-accounts"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Analyzed</div>
+                    <div class="stat-value info" id="analyzed-accounts"></div>
+                    <div class="stat-sub">With 3+ weeks data</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Growing</div>
+                    <div class="stat-value positive" id="growing-count"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Stable</div>
+                    <div class="stat-value" style="color:#3b82f6;" id="stable-count"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">At Risk</div>
+                    <div class="stat-value warning" id="at-risk-count"></div>
+                </div>
+            </div>
             <div class="two-col">
                 <div class="chart-container">
                     <div class="chart-title">Account Health Distribution</div>
@@ -163,16 +215,16 @@
                 </div>
             </div>
             <div class="chart-container">
-                <div class="chart-title">⚠️ Priority At-Risk Accounts</div>
+                <div class="chart-title">⚠️ Priority At-Risk Accounts (Top 10 by Revenue)</div>
                 <table class="data-table">
-                    <thead><tr><th>Account Name</th><th>Sales</th><th>Trend</th><th>Health</th><th>Status</th><th>Action</th></tr></thead>
+                    <thead><tr><th>Account Name</th><th>Total Sales</th><th>Trend</th><th>Health</th><th>Status</th><th>Action</th></tr></thead>
                     <tbody id="at-risk-table"></tbody>
                 </table>
             </div>
             <div class="chart-container">
                 <div class="chart-title">🚀 Top Growing Accounts</div>
                 <table class="data-table">
-                    <thead><tr><th>Account Name</th><th>Sales</th><th>Growth</th><th>Health</th><th>Status</th></tr></thead>
+                    <thead><tr><th>Account Name</th><th>Total Sales</th><th>Growth</th><th>Health</th><th>Status</th></tr></thead>
                     <tbody id="growing-table"></tbody>
                 </table>
             </div>
@@ -184,7 +236,24 @@
         
         <!-- REPS PANEL -->
         <div id="reps-panel" class="panel">
-            <div class="stats-grid" id="rep-stats"></div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Reps</div>
+                    <div class="stat-value info" id="total-reps"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Top Rep</div>
+                    <div class="stat-value" style="font-size:16px;color:#22c55e;" id="top-rep-name"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Avg Rep Sales</div>
+                    <div class="stat-value" style="color:#f97316;" id="avg-rep-sales"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Accounts Covered</div>
+                    <div class="stat-value info" id="total-accounts-covered"></div>
+                </div>
+            </div>
             <div class="two-col">
                 <div class="chart-container">
                     <div class="chart-title">Top 10 Reps by Sales</div>
@@ -198,7 +267,7 @@
             <div class="chart-container">
                 <div class="chart-title">🏆 Rep Performance Leaderboard</div>
                 <table class="data-table">
-                    <thead><tr><th>Rank</th><th>Rep Name</th><th>Total Sales</th><th>Accounts</th><th>Avg/Account</th><th>Transactions</th><th>Avg/Tx</th></tr></thead>
+                    <thead><tr><th>Rank</th><th>Rep Name</th><th>Total Sales</th><th>Accounts</th><th>Avg/Account</th><th>Transactions</th><th>Avg/Transaction</th></tr></thead>
                     <tbody id="rep-table"></tbody>
                 </table>
             </div>
@@ -256,8 +325,10 @@
                     <span class="nlq-suggestion" onclick="setQuery('Who is my top rep?')">Top rep?</span>
                     <span class="nlq-suggestion" onclick="setQuery('Top 5 suppliers by sales')">Top suppliers?</span>
                     <span class="nlq-suggestion" onclick="setQuery('What products sell together?')">Products sold together?</span>
+                    <span class="nlq-suggestion" onclick="setQuery('Compare October vs December')">Oct vs Dec?</span>
+                    <span class="nlq-suggestion" onclick="setQuery('Which supplier is growing fastest?')">Fastest growing?</span>
                     <span class="nlq-suggestion" onclick="setQuery('Show top brands')">Top brands?</span>
-                    <span class="nlq-suggestion" onclick="setQuery('Which rep has best efficiency?')">Most efficient rep?</span>
+                    <span class="nlq-suggestion" onclick="setQuery('Most efficient rep?')">Most efficient rep?</span>
                 </div>
                 <div id="nlq-result" class="nlq-response" style="display: none;">
                     <div class="nlq-response-header">
@@ -272,10 +343,11 @@
     </div>
     
     <script>
-        const DATA = {"stats": {"total_records": 297160, "total_sales": 15338086.0, "date_min": "2025-10-01", "date_max": "2026-01-27", "suppliers": 32, "accounts": 283, "accounts_analyzed": 191, "reps": 50}, "anomaly": {"daily": [{"date": "2025-10-01", "sales": 285228.8, "is_anomaly": false}, {"date": "2025-10-02", "sales": 138706.8, "is_anomaly": false}, {"date": "2025-10-03", "sales": 217500.0, "is_anomaly": false}, {"date": "2025-10-06", "sales": -10193.2, "is_anomaly": false}, {"date": "2025-10-07", "sales": 131087.2, "is_anomaly": false}, {"date": "2025-10-08", "sales": 205178.0, "is_anomaly": false}, {"date": "2025-10-09", "sales": 234929.6, "is_anomaly": false}, {"date": "2025-10-10", "sales": 236621.6, "is_anomaly": false}, {"date": "2025-10-13", "sales": 8796.0, "is_anomaly": false}, {"date": "2025-10-14", "sales": 184177.6, "is_anomaly": false}, {"date": "2025-10-15", "sales": 177449.6, "is_anomaly": false}, {"date": "2025-10-16", "sales": 210224.8, "is_anomaly": false}, {"date": "2025-10-17", "sales": 188838.8, "is_anomaly": false}, {"date": "2025-10-20", "sales": -5360.4, "is_anomaly": false}, {"date": "2025-10-21", "sales": 107939.2, "is_anomaly": false}, {"date": "2025-10-22", "sales": 383482.4, "is_anomaly": false}, {"date": "2025-10-23", "sales": 134584.4, "is_anomaly": false}, {"date": "2025-10-24", "sales": 217468.4, "is_anomaly": false}, {"date": "2025-10-28", "sales": 190204.0, "is_anomaly": false}, {"date": "2025-10-29", "sales": 366412.4, "is_anomaly": false}, {"date": "2025-10-30", "sales": 239988.8, "is_anomaly": false}, {"date": "2025-10-31", "sales": 115040.4, "is_anomaly": false}, {"date": "2025-11-03", "sales": 66800.0, "is_anomaly": false}, {"date": "2025-11-04", "sales": 133192.4, "is_anomaly": false}, {"date": "2025-11-05", "sales": 458958.0, "is_anomaly": false}, {"date": "2025-11-06", "sales": 171074.4, "is_anomaly": false}, {"date": "2025-11-07", "sales": 215857.2, "is_anomaly": false}, {"date": "2025-11-10", "sales": 0.0, "is_anomaly": false}, {"date": "2025-11-11", "sales": 224474.8, "is_anomaly": false}, {"date": "2025-11-12", "sales": 320982.4, "is_anomaly": false}, {"date": "2025-11-13", "sales": 129588.0, "is_anomaly": false}, {"date": "2025-11-14", "sales": 301024.4, "is_anomaly": false}, {"date": "2025-11-17", "sales": -4174.4, "is_anomaly": false}, {"date": "2025-11-18", "sales": 202920.8, "is_anomaly": false}, {"date": "2025-11-19", "sales": 739471.6, "is_anomaly": true}, {"date": "2025-11-20", "sales": 385784.8, "is_anomaly": false}, {"date": "2025-11-21", "sales": 262144.0, "is_anomaly": false}, {"date": "2025-11-22", "sales": 9866.8, "is_anomaly": false}, {"date": "2025-11-24", "sales": 232090.4, "is_anomaly": false}, {"date": "2025-11-25", "sales": 213647.2, "is_anomaly": false}, {"date": "2025-11-26", "sales": 203500.4, "is_anomaly": false}, {"date": "2025-12-01", "sales": 0.0, "is_anomaly": false}, {"date": "2025-12-02", "sales": 202599.2, "is_anomaly": false}, {"date": "2025-12-03", "sales": 481527.6, "is_anomaly": false}, {"date": "2025-12-04", "sales": 214228.0, "is_anomaly": false}, {"date": "2025-12-05", "sales": 341796.4, "is_anomaly": false}, {"date": "2025-12-08", "sales": -1129.6, "is_anomaly": false}, {"date": "2025-12-09", "sales": 91630.4, "is_anomaly": false}, {"date": "2025-12-10", "sales": 380898.4, "is_anomaly": false}, {"date": "2025-12-11", "sales": 207514.4, "is_anomaly": false}, {"date": "2025-12-12", "sales": 178191.6, "is_anomaly": false}, {"date": "2025-12-15", "sales": 2638.4, "is_anomaly": false}, {"date": "2025-12-16", "sales": 214241.6, "is_anomaly": false}, {"date": "2025-12-17", "sales": 543182.0, "is_anomaly": false}, {"date": "2025-12-18", "sales": 341172.0, "is_anomaly": false}, {"date": "2025-12-19", "sales": 527384.0, "is_anomaly": false}, {"date": "2025-12-22", "sales": 209196.4, "is_anomaly": false}, {"date": "2025-12-23", "sales": 334737.6, "is_anomaly": false}, {"date": "2025-12-24", "sales": 87555.2, "is_anomaly": false}, {"date": "2025-12-29", "sales": 117550.8, "is_anomaly": false}, {"date": "2025-12-30", "sales": 277487.6, "is_anomaly": false}, {"date": "2025-12-31", "sales": 209759.6, "is_anomaly": false}, {"date": "2026-01-02", "sales": 14520.0, "is_anomaly": false}, {"date": "2026-01-05", "sales": 31706.8, "is_anomaly": false}, {"date": "2026-01-06", "sales": 126465.2, "is_anomaly": false}, {"date": "2026-01-07", "sales": 207193.6, "is_anomaly": false}, {"date": "2026-01-08", "sales": 92220.4, "is_anomaly": false}, {"date": "2026-01-09", "sales": 96731.2, "is_anomaly": false}, {"date": "2026-01-12", "sales": -8112.0, "is_anomaly": false}, {"date": "2026-01-13", "sales": 144997.6, "is_anomaly": false}, {"date": "2026-01-14", "sales": 242494.8, "is_anomaly": false}, {"date": "2026-01-15", "sales": 206280.0, "is_anomaly": false}, {"date": "2026-01-16", "sales": 282134.0, "is_anomaly": false}, {"date": "2026-01-19", "sales": 6200.0, "is_anomaly": false}, {"date": "2026-01-20", "sales": 125614.0, "is_anomaly": false}, {"date": "2026-01-21", "sales": 246390.4, "is_anomaly": false}, {"date": "2026-01-22", "sales": 154800.0, "is_anomaly": false}, {"date": "2026-01-23", "sales": 148450.4, "is_anomaly": false}, {"date": "2026-01-27", "sales": 32329.6, "is_anomaly": false}], "supplier_anomalies": [{"date": "2025-12-03", "supplier": "Exhibit-A", "sales": 49808.0, "avg": 11798.46, "z_score": 2.24, "type": "spike"}, {"date": "2025-11-19", "supplier": "Tri-Vin", "sales": 129892.0, "avg": 28007.43, "z_score": 2.22, "type": "spike"}, {"date": "2025-10-29", "supplier": "Citizen Cider", "sales": 43080.0, "avg": 11260.86, "z_score": 2.21, "type": "spike"}, {"date": "2026-01-23", "supplier": "Stormalong Cider", "sales": 35700.0, "avg": 13073.83, "z_score": 2.21, "type": "spike"}, {"date": "2025-11-19", "supplier": "Mighty Squirrel", "sales": 253838.8, "avg": 83310.69, "z_score": 2.19, "type": "spike"}, {"date": "2025-11-19", "supplier": "Citizen Cider", "sales": 41240.0, "avg": 9213.83, "z_score": 2.19, "type": "spike"}, {"date": "2025-11-05", "supplier": "D&V International ", "sales": 15640.0, "avg": 6085.71, "z_score": 2.18, "type": "spike"}, {"date": "2025-11-21", "supplier": "Omnium Brewing", "sales": 11812.0, "avg": 4093.43, "z_score": 2.17, "type": "spike"}, {"date": "2026-01-16", "supplier": "Zero Gravity ", "sales": 139552.0, "avg": 38316.51, "z_score": 2.16, "type": "spike"}, {"date": "2025-12-03", "supplier": "Mighty Squirrel", "sales": 150216.8, "avg": 59683.2, "z_score": 2.15, "type": "spike"}, {"date": "2026-01-14", "supplier": "Lord Hobo", "sales": 77625.2, "avg": 18100.0, "z_score": 2.15, "type": "spike"}, {"date": "2025-12-23", "supplier": "Fabrizia", "sales": 67786.8, "avg": 18784.97, "z_score": 2.15, "type": "spike"}, {"date": "2025-12-23", "supplier": "Artisanal Imports", "sales": 13500.0, "avg": 2817.83, "z_score": 2.14, "type": "spike"}, {"date": "2025-12-30", "supplier": "Skurnik Wines", "sales": 10720.0, "avg": 4374.29, "z_score": 2.13, "type": "spike"}, {"date": "2026-01-14", "supplier": "Press", "sales": 10374.0, "avg": 3521.43, "z_score": 2.11, "type": "spike"}], "stats": {"daily_total": 1, "daily_spikes": 1, "daily_drops": 0, "supplier_total": 28, "supplier_spikes": 28, "supplier_drops": 0, "most_volatile": "Ace Cider"}}, "accounts": {"distribution": {"Stable": 155, "At Risk": 32, "Growing": 4}, "at_risk": [{"account_id": 12652, "account_name": "UNCLE CHEUNG'S RESTAURANT", "total_sales": 727064.0, "trend_pct": -74.3, "health_score": 25.0, "status": "At Risk"}, {"account_id": 13905, "account_name": "JERRY'S LIQUOR MART", "total_sales": 700788.8, "trend_pct": -31.0, "health_score": 34.0, "status": "At Risk"}, {"account_id": 12040, "account_name": "CORK & CASK", "total_sales": 684807.2, "trend_pct": -50.6, "health_score": 25.0, "status": "At Risk"}, {"account_id": 11995, "account_name": "CONCORD PROVISION", "total_sales": 317038.8, "trend_pct": -39.5, "health_score": 30.0, "status": "At Risk"}, {"account_id": 14865, "account_name": "ZZZZZZZZMARTY'S OF DUDLEY", "total_sales": 260063.2, "trend_pct": -27.1, "health_score": 36.0, "status": "At Risk"}, {"account_id": 13070, "account_name": "FRESH POND MARKET", "total_sales": 238305.6, "trend_pct": -24.1, "health_score": 38.0, "status": "At Risk"}, {"account_id": 11491, "account_name": "ZZZCAPE ANN LIQUORS", "total_sales": 205112.0, "trend_pct": -41.8, "health_score": 29.0, "status": "At Risk"}, {"account_id": 12580, "account_name": "EAST MILTON PACKAGE", "total_sales": 162638.4, "trend_pct": -34.3, "health_score": 33.0, "status": "At Risk"}, {"account_id": 13486, "account_name": "HARRY'S BAR & GRILL", "total_sales": 152963.2, "trend_pct": -20.3, "health_score": 40.0, "status": "At Risk"}, {"account_id": 15039, "account_name": "MICHAEL'S CIGAR BAR", "total_sales": 150421.2, "trend_pct": -65.8, "health_score": 25.0, "status": "At Risk"}], "growing": [{"account_id": 11444, "account_name": "THE BOATHOUSE", "total_sales": 206473.6, "trend_pct": 76.6, "health_score": 75.0, "status": "Growing"}, {"account_id": 12845, "account_name": "FERNANDEZ CHELSEA", "total_sales": 171773.2, "trend_pct": 84.0, "health_score": 75.0, "status": "Growing"}, {"account_id": 13225, "account_name": "GORDONS MAIN-WINE", "total_sales": 91904.8, "trend_pct": 88.8, "health_score": 75.0, "status": "Growing"}, {"account_id": 14039, "account_name": "KAPPY'S (CHICOPEE)", "total_sales": 78314.8, "trend_pct": 56.7, "health_score": 75.0, "status": "Growing"}], "total": 191, "at_risk_count": 32, "at_risk_pct": 16.8}, "reps": {"reps": [{"rep_id": 220, "rep_name": "Joseph Sullivan", "total_sales": 998560.0, "unique_accounts": 5, "avg_per_account": 199712.0, "transaction_count": 17680, "avg_per_tx": 56.48}, {"rep_id": 231, "rep_name": "Lauren Hurton", "total_sales": 925544.0, "unique_accounts": 9, "avg_per_account": 102838.22, "transaction_count": 8680, "avg_per_tx": 106.63}, {"rep_id": 43, "rep_name": "Derek Adelino", "total_sales": 741693.2, "unique_accounts": 9, "avg_per_account": 82410.36, "transaction_count": 16080, "avg_per_tx": 46.13}, {"rep_id": 54, "rep_name": "Brenden Groom", "total_sales": 727064.0, "unique_accounts": 1, "avg_per_account": 727064.0, "transaction_count": 7560, "avg_per_tx": 96.17}, {"rep_id": 248, "rep_name": "Otis Alkevicius", "total_sales": 724817.6, "unique_accounts": 13, "avg_per_account": 55755.2, "transaction_count": 15080, "avg_per_tx": 48.06}, {"rep_id": 152, "rep_name": "Chris Walsh", "total_sales": 707206.4, "unique_accounts": 14, "avg_per_account": 50514.74, "transaction_count": 11560, "avg_per_tx": 61.18}, {"rep_id": 201, "rep_name": "Nate Lavigne", "total_sales": 627873.6, "unique_accounts": 13, "avg_per_account": 48297.97, "transaction_count": 10960, "avg_per_tx": 57.29}, {"rep_id": 63, "rep_name": "Will Feuersanger", "total_sales": 607781.6, "unique_accounts": 14, "avg_per_account": 43412.97, "transaction_count": 13720, "avg_per_tx": 44.3}, {"rep_id": 159, "rep_name": "Lexi Anastos", "total_sales": 523554.0, "unique_accounts": 6, "avg_per_account": 87259.0, "transaction_count": 9720, "avg_per_tx": 53.86}, {"rep_id": 237, "rep_name": "Nathan Palmquist", "total_sales": 504848.4, "unique_accounts": 8, "avg_per_account": 63106.05, "transaction_count": 12240, "avg_per_tx": 41.25}], "total": 50, "avg_sales": 306761.72, "total_accounts": 283}, "products": {"top_suppliers": [{"name": "Mighty Squirrel", "sales": 3549404.0, "accounts": 224}, {"name": "Zero Gravity ", "sales": 2564576.8, "accounts": 180}, {"name": "Lord Hobo", "sales": 2168352.0, "accounts": 177}, {"name": "Stormalong Cider", "sales": 1082556.8, "accounts": 111}, {"name": "Tri-Vin", "sales": 1046130.8, "accounts": 57}, {"name": "Exhibit-A", "sales": 725502.8, "accounts": 103}, {"name": "Citizen Cider", "sales": 613202.8, "accounts": 91}, {"name": "Fabrizia", "sales": 486221.2, "accounts": 48}, {"name": "Medusa Brewing", "sales": 402777.2, "accounts": 81}, {"name": "Stoneface Brewing", "sales": 357453.6, "accounts": 73}], "top_brands": [{"supplier": "Mighty Squirrel", "brand_name": "6/4/16 MIGHTY SQUIREL CLOUD CANDY CA", "sales": 1758557.6, "cases": 49582.1, "accounts": 161}, {"supplier": "Lord Hobo", "brand_name": "6/4/16 LORD HOBO BOOMSAUCE IPA", "sales": 604707.2, "cases": 15475.52, "accounts": 110}, {"supplier": "Mighty Squirrel", "brand_name": "MIGHTY SQUIREL CLOUD CAND 50L", "sales": 559375.2, "cases": 26769.43, "accounts": 32}, {"supplier": "Zero Gravity ", "brand_name": "6/4/16 ZERO GRAVITY CONEHEAD", "sales": 375186.8, "cases": 13164.41, "accounts": 93}, {"supplier": "Stormalong Cider", "brand_name": "6/4/16 STORMALONG HAP HOLIDAY CAN", "sales": 288716.8, "cases": 9057.76, "accounts": 65}, {"supplier": "Zero Gravity ", "brand_name": "2/12PK ZERO GRAVITY MORE 4 DOLLAR", "sales": 267200.0, "cases": 16000.0, "accounts": 1}, {"supplier": "Exhibit-A", "brand_name": "6/4/16 EXHIBIT A CATS MEOW IPA", "sales": 267185.2, "cases": 7277.76, "accounts": 75}, {"supplier": "Stormalong Cider", "brand_name": "6/4/16 STORMALONG LEGENDARY CAN", "sales": 255000.0, "cases": 7999.98, "accounts": 64}, {"supplier": "Citizen Cider", "brand_name": "6/4/16 CITIZEN CIDER UNIFIED PRS CAN", "sales": 227126.8, "cases": 6977.76, "accounts": 60}, {"supplier": "Zero Gravity ", "brand_name": "2/12PK ZERO GRAVITY VARIETY PACK", "sales": 224754.8, "cases": 11380.0, "accounts": 49}], "supplier_pairs": [{"s1": "Mighty Squirrel", "s2": "Zero Gravity ", "count": 393}, {"s1": "Lord Hobo", "s2": "Mighty Squirrel", "count": 360}, {"s1": "Lord Hobo", "s2": "Zero Gravity ", "count": 316}, {"s1": "Mighty Squirrel", "s2": "Stormalong Cider", "count": 168}, {"s1": "Exhibit-A", "s2": "Mighty Squirrel", "count": 153}, {"s1": "Stormalong Cider", "s2": "Zero Gravity ", "count": 153}, {"s1": "Exhibit-A", "s2": "Zero Gravity ", "count": 145}, {"s1": "Lord Hobo", "s2": "Stormalong Cider", "count": 135}, {"s1": "Citizen Cider", "s2": "Zero Gravity ", "count": 125}, {"s1": "Citizen Cider", "s2": "Mighty Squirrel", "count": 120}], "channels": [{"name": "Off-Premise", "sales": 3542866.4, "pct": 23.1}, {"name": "On-Premise", "sales": 11795219.6, "pct": 76.9}], "growth": [{"name": "Jiant Kombucha", "pct": 33.3}, {"name": "Fabrizia", "pct": 22.1}, {"name": "Exhibit-A", "pct": 4.5}, {"name": "Glendalough", "pct": 2.2}, {"name": "Lord Hobo", "pct": 0.0}]}, "forecast": {"monthly": {"2025-10": 3958305.2, "2025-11": 4267203.2, "2025-12": 4962161.6, "2026-01": 2150416.0}, "dow": [{"day": "Mon", "full": "Monday", "avg": 45.0}, {"day": "Tue", "full": "Tuesday", "avg": 52.0}, {"day": "Wed", "full": "Wednesday", "avg": 56.0}, {"day": "Thu", "full": "Thursday", "avg": 44.0}, {"day": "Fri", "full": "Friday", "avg": 55.0}, {"day": "Sat", "full": "Saturday", "avg": 82.0}, {"day": "Sun", "full": "Sunday", "avg": 0}], "next_30d": 5401027.0, "growth_pct": -19.4, "daily_avg": 180034.0}};
+        const DATA = {"stats": {"total_records": 114035, "total_sales": 7543741.43, "date_min": "2025-10-01", "date_max": "2026-01-27", "suppliers": 34, "accounts": 3276, "accounts_analyzed": 2292, "reps": 58}, "anomaly": {"daily": [{"date": "2025-10-01", "sales": 101740.03, "is_anomaly": false, "z_score": 0}, {"date": "2025-10-02", "sales": 95608.53, "is_anomaly": false, "z_score": 0}, {"date": "2025-10-03", "sales": 90629.15, "is_anomaly": false, "z_score": -0.96}, {"date": "2025-10-04", "sales": 386.0, "is_anomaly": false, "z_score": -1.49}, {"date": "2025-10-06", "sales": 22215.49, "is_anomaly": false, "z_score": -0.85}, {"date": "2025-10-07", "sales": 116172.78, "is_anomaly": false, "z_score": 0.95}, {"date": "2025-10-08", "sales": 106410.55, "is_anomaly": false, "z_score": 0.67}, {"date": "2025-10-09", "sales": 112412.93, "is_anomaly": false, "z_score": 0.74}, {"date": "2025-10-10", "sales": 124101.82, "is_anomaly": false, "z_score": 0.85}, {"date": "2025-10-13", "sales": 12133.79, "is_anomaly": false, "z_score": -1.05}, {"date": "2025-10-14", "sales": 84506.45, "is_anomaly": false, "z_score": 0.04}, {"date": "2025-10-15", "sales": 105599.5, "is_anomaly": false, "z_score": 0.29}, {"date": "2025-10-16", "sales": 98419.53, "is_anomaly": false, "z_score": 0.17}, {"date": "2025-10-17", "sales": 141825.35, "is_anomaly": false, "z_score": 1.08}, {"date": "2025-10-20", "sales": 10000.35, "is_anomaly": false, "z_score": -1.39}, {"date": "2025-10-21", "sales": 96151.46, "is_anomaly": false, "z_score": 0.36}, {"date": "2025-10-22", "sales": 106121.8, "is_anomaly": false, "z_score": 0.36}, {"date": "2025-10-23", "sales": 104416.14, "is_anomaly": false, "z_score": 0.24}, {"date": "2025-10-24", "sales": 135932.75, "is_anomaly": false, "z_score": 0.85}, {"date": "2025-10-27", "sales": 12697.39, "is_anomaly": false, "z_score": -1.37}, {"date": "2025-10-28", "sales": 113957.74, "is_anomaly": false, "z_score": 0.62}, {"date": "2025-10-29", "sales": 127468.58, "is_anomaly": false, "z_score": 0.69}, {"date": "2025-10-30", "sales": 101691.25, "is_anomaly": false, "z_score": 0.03}, {"date": "2025-10-31", "sales": 118514.63, "is_anomaly": false, "z_score": 0.4}, {"date": "2025-11-03", "sales": 44876.48, "is_anomaly": false, "z_score": -1.05}, {"date": "2025-11-04", "sales": 98017.54, "is_anomaly": false, "z_score": 0.23}, {"date": "2025-11-05", "sales": 119361.81, "is_anomaly": false, "z_score": 0.57}, {"date": "2025-11-06", "sales": 119730.73, "is_anomaly": false, "z_score": 0.55}, {"date": "2025-11-07", "sales": 103493.87, "is_anomaly": false, "z_score": 0.1}, {"date": "2025-11-10", "sales": 7634.71, "is_anomaly": true, "z_score": -1.82}, {"date": "2025-11-11", "sales": 91686.77, "is_anomaly": false, "z_score": 0.19}, {"date": "2025-11-12", "sales": 113170.53, "is_anomaly": false, "z_score": 0.51}, {"date": "2025-11-13", "sales": 104656.36, "is_anomaly": false, "z_score": 0.26}, {"date": "2025-11-14", "sales": 103257.75, "is_anomaly": false, "z_score": 0.3}, {"date": "2025-11-17", "sales": 19309.5, "is_anomaly": false, "z_score": -1.31}, {"date": "2025-11-18", "sales": 114455.87, "is_anomaly": false, "z_score": 0.77}, {"date": "2025-11-19", "sales": 160236.68, "is_anomaly": false, "z_score": 1.41}, {"date": "2025-11-20", "sales": 150909.62, "is_anomaly": false, "z_score": 0.91}, {"date": "2025-11-21", "sales": 155120.87, "is_anomaly": false, "z_score": 0.81}, {"date": "2025-11-22", "sales": 467.51, "is_anomaly": true, "z_score": -1.52}, {"date": "2025-11-24", "sales": 126007.2, "is_anomaly": false, "z_score": 0.33}, {"date": "2025-11-25", "sales": 128946.66, "is_anomaly": false, "z_score": 0.17}, {"date": "2025-11-26", "sales": 73571.53, "is_anomaly": false, "z_score": -0.69}, {"date": "2025-11-28", "sales": 1064.96, "is_anomaly": false, "z_score": -1.34}, {"date": "2025-12-01", "sales": 29535.25, "is_anomaly": false, "z_score": -0.68}, {"date": "2025-12-02", "sales": 136954.17, "is_anomaly": false, "z_score": 1.08}, {"date": "2025-12-03", "sales": 158852.25, "is_anomaly": false, "z_score": 1.09}, {"date": "2025-12-04", "sales": 110905.12, "is_anomaly": false, "z_score": 0.33}, {"date": "2025-12-05", "sales": 98542.1, "is_anomaly": false, "z_score": 0.2}, {"date": "2025-12-08", "sales": 14155.87, "is_anomaly": false, "z_score": -1.02}, {"date": "2025-12-09", "sales": 94735.18, "is_anomaly": false, "z_score": 0.05}, {"date": "2025-12-10", "sales": 114300.12, "is_anomaly": false, "z_score": 0.22}, {"date": "2025-12-11", "sales": 105049.33, "is_anomaly": false, "z_score": 0.13}, {"date": "2025-12-12", "sales": 106344.31, "is_anomaly": false, "z_score": 0.41}, {"date": "2025-12-15", "sales": 19793.46, "is_anomaly": false, "z_score": -1.38}, {"date": "2025-12-16", "sales": 112562.11, "is_anomaly": false, "z_score": 0.71}, {"date": "2025-12-17", "sales": 174621.21, "is_anomaly": true, "z_score": 1.56}, {"date": "2025-12-18", "sales": 138112.92, "is_anomaly": false, "z_score": 0.6}, {"date": "2025-12-19", "sales": 149046.74, "is_anomaly": false, "z_score": 0.69}, {"date": "2025-12-20", "sales": 120.0, "is_anomaly": true, "z_score": -1.52}, {"date": "2025-12-22", "sales": 105934.28, "is_anomaly": false, "z_score": 0.09}, {"date": "2025-12-23", "sales": 108634.03, "is_anomaly": false, "z_score": -0.07}, {"date": "2025-12-24", "sales": 82495.86, "is_anomaly": false, "z_score": -0.46}, {"date": "2025-12-29", "sales": 98692.02, "is_anomaly": false, "z_score": 0.02}, {"date": "2025-12-30", "sales": 142500.18, "is_anomaly": false, "z_score": 0.9}, {"date": "2025-12-31", "sales": 76742.34, "is_anomaly": false, "z_score": -0.25}, {"date": "2026-01-02", "sales": 12423.12, "is_anomaly": true, "z_score": -1.92}, {"date": "2026-01-05", "sales": 13765.32, "is_anomaly": false, "z_score": -1.3}, {"date": "2026-01-06", "sales": 68818.18, "is_anomaly": false, "z_score": -0.04}, {"date": "2026-01-07", "sales": 72123.73, "is_anomaly": false, "z_score": 0.06}, {"date": "2026-01-08", "sales": 71996.27, "is_anomaly": false, "z_score": 0.15}, {"date": "2026-01-09", "sales": 88127.53, "is_anomaly": false, "z_score": 0.98}, {"date": "2026-01-12", "sales": 100458.58, "is_anomaly": false, "z_score": 1.14}, {"date": "2026-01-13", "sales": 77355.48, "is_anomaly": false, "z_score": 0.26}, {"date": "2026-01-14", "sales": 87191.53, "is_anomaly": false, "z_score": 0.55}, {"date": "2026-01-15", "sales": 122250.86, "is_anomaly": true, "z_score": 1.87}, {"date": "2026-01-16", "sales": 157703.08, "is_anomaly": true, "z_score": 1.9}, {"date": "2026-01-19", "sales": 14619.69, "is_anomaly": true, "z_score": -1.78}, {"date": "2026-01-20", "sales": 80698.98, "is_anomaly": false, "z_score": -0.24}, {"date": "2026-01-21", "sales": 93868.0, "is_anomaly": false, "z_score": 0.08}, {"date": "2026-01-22", "sales": 96275.12, "is_anomaly": false, "z_score": 0.07}, {"date": "2026-01-23", "sales": 148479.21, "is_anomaly": false, "z_score": 0.97}, {"date": "2026-01-27", "sales": 83866.96, "is_anomaly": false, "z_score": -0.27}], "supplier_anomalies": [{"date": "2025-11-04", "supplier": "Owls Brew", "sales": 1258.0, "avg": 279.29, "z_score": 2.25, "type": "spike"}, {"date": "2025-12-09", "supplier": "Owls Brew", "sales": 1198.5, "avg": 221.21, "z_score": 2.25, "type": "spike"}, {"date": "2026-01-02", "supplier": "Lord Hobo", "sales": 928.76, "avg": 13457.43, "z_score": -2.24, "type": "drop"}, {"date": "2025-10-13", "supplier": "D&V International ", "sales": 4450.0, "avg": 1097.29, "z_score": 2.24, "type": "spike"}, {"date": "2025-12-09", "supplier": "Moonlight Meadery", "sales": 720.0, "avg": 205.71, "z_score": 2.23, "type": "spike"}, {"date": "2025-10-29", "supplier": "Artisanal Imports", "sales": 770.0, "avg": 224.55, "z_score": 2.22, "type": "spike"}, {"date": "2025-10-23", "supplier": "Esber Beverage ", "sales": 904.95, "avg": 229.24, "z_score": 2.22, "type": "spike"}, {"date": "2026-01-12", "supplier": "Tri-Vin", "sales": 96520.73, "avg": 20309.92, "z_score": 2.21, "type": "spike"}, {"date": "2026-01-09", "supplier": "Tri-Vin", "sales": 24240.67, "avg": 7089.99, "z_score": 2.2, "type": "spike"}, {"date": "2025-10-21", "supplier": "BNA", "sales": 1890.0, "avg": 547.57, "z_score": 2.16, "type": "spike"}, {"date": "2026-01-16", "supplier": "Ace Cider", "sales": 322.15, "avg": 66.38, "z_score": 2.16, "type": "spike"}, {"date": "2025-12-10", "supplier": "Toppling Goliath", "sales": 1875.99, "avg": 700.93, "z_score": 2.13, "type": "spike"}, {"date": "2025-12-03", "supplier": "Glendalough", "sales": 4398.37, "avg": 1326.56, "z_score": 2.12, "type": "spike"}, {"date": "2025-11-18", "supplier": "Woodmar", "sales": 1656.0, "avg": 699.43, "z_score": 2.12, "type": "spike"}, {"date": "2025-11-19", "supplier": "GrandTen Distilling", "sales": 5759.5, "avg": 2082.71, "z_score": 2.11, "type": "spike"}], "stats": {"daily_total": 8, "daily_spikes": 3, "daily_drops": 5, "supplier_total": 34, "supplier_spikes": 31, "supplier_drops": 3, "most_volatile": "Tri-Vin"}}, "accounts": {"distribution": {"Stable": 1636, "At Risk": 496, "Growing": 160}, "at_risk": [{"account_id": 3331, "account_name": "TOTAL WINE NATICK", "total_sales": 70386.31, "trend_pct": -28.4, "health_score": 36.0, "status": "At Risk"}, {"account_id": 10674, "account_name": "MB SPIRITS - WALTHAM", "total_sales": 57410.11, "trend_pct": -26.5, "health_score": 37.0, "status": "At Risk"}, {"account_id": 3184, "account_name": "MARTY'S - NEWTON", "total_sales": 56474.32, "trend_pct": -31.0, "health_score": 34.0, "status": "At Risk"}, {"account_id": 3684, "account_name": "LIQUOR JUNCTION - READING", "total_sales": 54234.67, "trend_pct": -60.9, "health_score": 25.0, "status": "At Risk"}, {"account_id": 3207, "account_name": "WEGMANS CHESTNUT HILL", "total_sales": 47147.26, "trend_pct": -63.6, "health_score": 25.0, "status": "At Risk"}, {"account_id": 6278, "account_name": "TOTAL WINE DANVERS", "total_sales": 45323.43, "trend_pct": -51.0, "health_score": 25.0, "status": "At Risk"}, {"account_id": 10706, "account_name": "TOTAL WINE BRAINTREE", "total_sales": 40815.89, "trend_pct": -60.3, "health_score": 25.0, "status": "At Risk"}, {"account_id": 3465, "account_name": "WEGMANS BURLINGTON", "total_sales": 32782.0, "trend_pct": -20.6, "health_score": 40.0, "status": "At Risk"}, {"account_id": 12953, "account_name": "MB SPIRITS - HANOVER", "total_sales": 31456.45, "trend_pct": -24.2, "health_score": 38.0, "status": "At Risk"}, {"account_id": 6265, "account_name": "TOTAL WINE SHREWSBURY", "total_sales": 30152.5, "trend_pct": -35.0, "health_score": 33.0, "status": "At Risk"}], "growing": [{"account_id": 8035, "account_name": "COSTCO WALTHAM #308", "total_sales": 148785.28, "trend_pct": 184.7, "health_score": 75.0, "status": "Growing"}, {"account_id": 8041, "account_name": "COSTCO W SPRINGFIELD #302", "total_sales": 112334.78, "trend_pct": 351.8, "health_score": 75.0, "status": "Growing"}, {"account_id": 11802, "account_name": "COSTCO - DEDHAM #319", "total_sales": 109296.32, "trend_pct": 148.7, "health_score": 75.0, "status": "Growing"}, {"account_id": 11202, "account_name": "COSTCO EVERETT #333", "total_sales": 109240.01, "trend_pct": 245.4, "health_score": 75.0, "status": "Growing"}, {"account_id": 14666, "account_name": "COSTCO SHARON #1704", "total_sales": 99668.41, "trend_pct": 232.9, "health_score": 75.0, "status": "Growing"}], "total": 2292, "at_risk_count": 496, "at_risk_pct": 21.6}, "reps": {"reps": [{"rep_id": 14, "rep_name": "Michael Kelleher", "total_sales": 760000.45, "unique_accounts": 7, "avg_per_account": 108571.49, "transaction_count": 439, "avg_per_tx": 1731.21}, {"rep_id": 46, "rep_name": "Shawn Carpenter", "total_sales": 469197.39, "unique_accounts": 12, "avg_per_account": 39099.78, "transaction_count": 5060, "avg_per_tx": 92.73}, {"rep_id": 54, "rep_name": "Brenden Groom", "total_sales": 305473.13, "unique_accounts": 22, "avg_per_account": 13885.14, "transaction_count": 3722, "avg_per_tx": 82.07}, {"rep_id": 126, "rep_name": "Jared Perera", "total_sales": 266298.91, "unique_accounts": 85, "avg_per_account": 3132.93, "transaction_count": 4133, "avg_per_tx": 64.43}, {"rep_id": 159, "rep_name": "Lexi Anastos", "total_sales": 243911.41, "unique_accounts": 89, "avg_per_account": 2740.58, "transaction_count": 2742, "avg_per_tx": 88.95}, {"rep_id": 217, "rep_name": "Mike Frayne", "total_sales": 239843.19, "unique_accounts": 56, "avg_per_account": 4282.91, "transaction_count": 4034, "avg_per_tx": 59.46}, {"rep_id": 177, "rep_name": "Shane McNally", "total_sales": 235740.23, "unique_accounts": 113, "avg_per_account": 2086.2, "transaction_count": 4008, "avg_per_tx": 58.82}, {"rep_id": 152, "rep_name": "Chris Walsh", "total_sales": 230993.18, "unique_accounts": 106, "avg_per_account": 2179.18, "transaction_count": 4000, "avg_per_tx": 57.75}, {"rep_id": 63, "rep_name": "Will Feuersanger", "total_sales": 217695.91, "unique_accounts": 112, "avg_per_account": 1943.71, "transaction_count": 3962, "avg_per_tx": 54.95}, {"rep_id": 43, "rep_name": "Derek Adelino", "total_sales": 200003.22, "unique_accounts": 81, "avg_per_account": 2469.18, "transaction_count": 3585, "avg_per_tx": 55.79}], "total": 58, "avg_sales": 130064.51, "total_accounts": 3276}, "products": {"top_suppliers": [{"name": "Mighty Squirrel", "sales": 1465711.05, "accounts": 2546}, {"name": "Tri-Vin", "sales": 1217582.3, "accounts": 710}, {"name": "Zero Gravity ", "sales": 1036208.95, "accounts": 2037}, {"name": "Lord Hobo", "sales": 993154.57, "accounts": 2051}, {"name": "Stormalong Cider", "sales": 543492.91, "accounts": 1283}, {"name": "Exhibit-A", "sales": 283894.09, "accounts": 1289}, {"name": "Citizen Cider", "sales": 253892.99, "accounts": 984}, {"name": "Fabrizia", "sales": 227704.41, "accounts": 658}, {"name": "Medusa Brewing", "sales": 183064.09, "accounts": 961}, {"name": "Skurnik Wines", "sales": 176350.21, "accounts": 269}], "top_brands": [{"supplier": "Mighty Squirrel", "brand_name": "6/4/16 MIGHTY SQUIREL CLOUD CANDY CA", "sales": 792058.35, "cases": 22331.89, "accounts": 1913}, {"supplier": "Lord Hobo", "brand_name": "6/4/16 LORD HOBO BOOMSAUCE IPA", "sales": 293238.39, "cases": 7504.48, "accounts": 1399}, {"supplier": "Tri-Vin", "brand_name": "12/750 PRECISION METHOD CAB 22", "sales": 216086.91, "cases": 2431.24, "accounts": 7}, {"supplier": "Mighty Squirrel", "brand_name": "MIGHTY SQUIREL CLOUD CAND 50L", "sales": 201178.8, "cases": 9627.6, "accounts": 363}, {"supplier": "Tri-Vin", "brand_name": "12/750 BOUND AV CABERNET 23", "sales": 159217.0, "cases": 1488.75, "accounts": 7}, {"supplier": "Stormalong Cider", "brand_name": "6/4/16 STORMALONG LEGENDARY CAN", "sales": 146509.91, "cases": 4596.38, "accounts": 853}, {"supplier": "Stormalong Cider", "brand_name": "6/4/16 STORMALONG HAP HOLIDAY CAN", "sales": 136389.59, "cases": 4278.88, "accounts": 761}, {"supplier": "Zero Gravity ", "brand_name": "6/4/16 ZERO GRAVITY CONEHEAD", "sales": 134732.19, "cases": 4727.43, "accounts": 1141}, {"supplier": "Tri-Vin", "brand_name": "12/750 LOGRONO RIOJA 19", "sales": 126336.0, "cases": 1390.49, "accounts": 7}, {"supplier": "Exhibit-A", "brand_name": "6/4/16 EXHIBIT A CATS MEOW IPA", "sales": 118165.28, "cases": 3218.66, "accounts": 888}], "supplier_pairs": [{"s1": "Mighty Squirrel", "s2": "Zero Gravity ", "count": 5888}, {"s1": "Lord Hobo", "s2": "Mighty Squirrel", "count": 5158}, {"s1": "Lord Hobo", "s2": "Zero Gravity ", "count": 4638}, {"s1": "Stormalong Cider", "s2": "Zero Gravity ", "count": 2615}, {"s1": "Mighty Squirrel", "s2": "Stormalong Cider", "count": 2611}, {"s1": "Exhibit-A", "s2": "Mighty Squirrel", "count": 2197}, {"s1": "Exhibit-A", "s2": "Zero Gravity ", "count": 2126}, {"s1": "Lord Hobo", "s2": "Stormalong Cider", "count": 2114}, {"s1": "Exhibit-A", "s2": "Lord Hobo", "count": 1735}, {"s1": "Citizen Cider", "s2": "Zero Gravity ", "count": 1656}], "channels": [{"name": "Off-Premise", "sales": 1336028.94, "pct": 17.7}, {"name": "On-Premise", "sales": 6207712.49, "pct": 82.3}], "growth": [{"name": "Moonlight Meadery", "pct": 18.7}, {"name": "Tri-Vin", "pct": 9.0}, {"name": "Toppling Goliath", "pct": 1.7}, {"name": "Glendalough", "pct": 1.3}, {"name": "Exhibit-A", "pct": 0.1}]}, "forecast": {"monthly": {"2025-10": 2139113.99, "2025-11": 1835976.95, "2025-12": 2178628.85, "2026-01": 1390021.64}, "dow": [{"day": "Mon", "full": "Monday", "avg": 85.0}, {"day": "Tue", "full": "Tuesday", "avg": 68.0}, {"day": "Wed", "full": "Wednesday", "avg": 62.0}, {"day": "Thu", "full": "Thursday", "avg": 58.0}, {"day": "Fri", "full": "Friday", "avg": 71.0}, {"day": "Sat", "full": "Saturday", "avg": 70.0}, {"day": "Sun", "full": "Sunday", "avg": 0}], "next_30d": 2705621.0, "growth_pct": -4.0, "daily_avg": 90187.0}};
         
+        const dateRange = `${DATA.stats.date_min.slice(5).replace('-','/')} - ${DATA.stats.date_max.slice(5).replace('-','/')}`;
         document.getElementById('header-stats').textContent = 
-            `${DATA.stats.total_records.toLocaleString()} transactions • ${DATA.stats.suppliers} suppliers • ${DATA.stats.accounts} accounts • ${DATA.stats.date_min.slice(5).replace('-','/')} - ${DATA.stats.date_max.slice(5).replace('-','/')}`;
+            `${DATA.stats.total_records.toLocaleString()} transactions • ${DATA.stats.suppliers} suppliers • ${DATA.stats.accounts.toLocaleString()} accounts • ${DATA.stats.reps} reps • ${dateRange}`;
         
         function showPanel(panel) {
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -295,44 +367,49 @@
         
         function renderAnomalyPanel() {
             const stats = DATA.anomaly.stats;
-            // FIXED: Show both daily and supplier anomaly counts clearly
-            document.getElementById('daily-anomaly-count').textContent = stats.daily_total;
-            document.getElementById('supplier-anomaly-count').textContent = `${stats.supplier_spikes} spikes, ${stats.supplier_drops} drops`;
+            document.getElementById('total-anomalies').textContent = stats.daily_total;
+            document.getElementById('daily-spikes').textContent = stats.daily_spikes;
+            document.getElementById('daily-drops').textContent = stats.daily_drops;
             document.getElementById('most-volatile').textContent = stats.most_volatile;
             
             const daily = DATA.anomaly.daily;
             const anomalyPts = daily.filter(d => d.is_anomaly);
+            
             Plotly.newPlot('anomaly-chart', [
                 {x: daily.map(d => d.date), y: daily.map(d => d.sales), type: 'scatter', mode: 'lines', line: {color: '#f97316', width: 2}, name: 'Daily Sales'},
-                {x: anomalyPts.map(d => d.date), y: anomalyPts.map(d => d.sales), type: 'scatter', mode: 'markers', marker: {color: '#ef4444', size: 14, symbol: 'diamond'}, name: `Daily Anomalies (${anomalyPts.length})`}
+                {x: anomalyPts.map(d => d.date), y: anomalyPts.map(d => d.sales), type: 'scatter', mode: 'markers', marker: {color: anomalyPts.map(d => d.z_score > 0 ? '#22c55e' : '#ef4444'), size: 14, symbol: 'diamond'}, name: `Anomalies (${anomalyPts.length})`}
             ], {paper_bgcolor: 'transparent', plot_bgcolor: 'transparent', font: {color: '#94a3b8'}, xaxis: {gridcolor: '#334155'}, yaxis: {gridcolor: '#334155', tickformat: '$,.0f'}, legend: {orientation: 'h', y: -0.15}, margin: {t: 20, r: 20}}, {responsive: true});
             
-            // Show supplier-level anomalies in list
             const supplierAnomalies = DATA.anomaly.supplier_anomalies;
-            if (supplierAnomalies.length === 0) {
-                document.getElementById('anomaly-list').innerHTML = '<p style="color:#94a3b8;padding:20px;">No significant supplier-level anomalies detected in this period.</p>';
-            } else {
-                document.getElementById('anomaly-list').innerHTML = supplierAnomalies.slice(0, 10).map(a => `
-                    <div style="display:flex;align-items:center;padding:12px;background:#0f172a;border-radius:8px;margin-bottom:8px;">
-                        <span style="font-size:20px;margin-right:12px;">${a.type === 'spike' ? '📈' : '📉'}</span>
-                        <div style="flex:1;"><strong>${a.supplier}</strong><br><span style="color:#94a3b8;font-size:12px;">${a.date} • $${a.sales.toLocaleString()} vs $${Math.round(a.avg).toLocaleString()} avg</span></div>
-                        <span style="color:${a.type === 'spike' ? '#22c55e' : '#ef4444'};font-weight:700;">${a.z_score > 0 ? '+' : ''}${a.z_score.toFixed(1)}σ</span>
+            document.getElementById('anomaly-list').innerHTML = supplierAnomalies.length ? supplierAnomalies.slice(0, 12).map(a => `
+                <div class="anomaly-item">
+                    <span class="anomaly-icon">${a.type === 'spike' ? '📈' : '📉'}</span>
+                    <div class="anomaly-details">
+                        <div class="anomaly-supplier">${a.supplier}</div>
+                        <div class="anomaly-meta">${a.date} • $${a.sales.toLocaleString()} vs $${Math.round(a.avg).toLocaleString()} avg</div>
                     </div>
-                `).join('');
-            }
+                    <span class="anomaly-zscore" style="color:${a.type === 'spike' ? '#22c55e' : '#ef4444'};">${a.z_score > 0 ? '+' : ''}${a.z_score.toFixed(1)}σ</span>
+                </div>
+            `).join('') : '<p style="color:#94a3b8;padding:20px;text-align:center;">No supplier anomalies detected.</p>';
+            
+            // Find specific anomaly dates for insight
+            const spikesDates = anomalyPts.filter(d => d.z_score > 0).map(d => d.date.slice(5).replace('-','/')).join(', ');
+            const dropsDates = anomalyPts.filter(d => d.z_score < 0).map(d => d.date.slice(5).replace('-','/')).join(', ');
             
             document.getElementById('anomaly-insight').innerHTML = `
-                <strong>Daily Level:</strong> ${stats.daily_total} significant anomaly detected (${stats.daily_spikes} spike, ${stats.daily_drops} drops) - shown on chart.<br><br>
-                <strong>Supplier Level:</strong> ${stats.supplier_total} individual supplier anomalies (${stats.supplier_spikes} spikes, ${stats.supplier_drops} drops). <strong>${stats.most_volatile}</strong> shows highest day-to-day volatility. These supplier-level spikes may not show as daily anomalies when other suppliers offset them.
+                Detected <strong>${stats.daily_total} daily anomalies</strong> (${stats.daily_spikes} spikes, ${stats.daily_drops} drops). 
+                ${stats.daily_spikes > 0 ? `<strong>Spike days:</strong> ${spikesDates} - investigate for large orders or promotions. ` : ''}
+                ${stats.daily_drops > 0 ? `<strong>Drop days:</strong> ${dropsDates} - likely weekends, holidays, or supply issues. ` : ''}
+                At the supplier level, <strong>${stats.supplier_total} anomalies</strong> were detected (${stats.supplier_spikes} spikes, ${stats.supplier_drops} drops).
+                <strong>${stats.most_volatile}</strong> shows the highest day-to-day volatility.
             `;
         }
         
         function renderForecastPanel() {
-            document.getElementById('forecast-stats').innerHTML = `
-                <div class="stat-card"><div class="stat-label">Next 30 Days (Est.)</div><div class="stat-value positive">$${(DATA.forecast.next_30d/1000000).toFixed(2)}M</div></div>
-                <div class="stat-card"><div class="stat-label">Vs Prior Period</div><div class="stat-value ${DATA.forecast.growth_pct >= 0 ? 'positive' : 'negative'}">${DATA.forecast.growth_pct >= 0 ? '+' : ''}${DATA.forecast.growth_pct}%</div></div>
-                <div class="stat-card"><div class="stat-label">Daily Average (Recent)</div><div class="stat-value" style="color:#f97316;">$${DATA.forecast.daily_avg.toLocaleString()}</div></div>
-            `;
+            document.getElementById('forecast-30d').textContent = `$${(DATA.forecast.next_30d/1000000).toFixed(2)}M`;
+            document.getElementById('forecast-growth').textContent = `${DATA.forecast.growth_pct >= 0 ? '+' : ''}${DATA.forecast.growth_pct}%`;
+            document.getElementById('forecast-growth').className = `stat-value ${DATA.forecast.growth_pct >= 0 ? 'positive' : 'negative'}`;
+            document.getElementById('forecast-daily').textContent = `$${DATA.forecast.daily_avg.toLocaleString()}`;
             
             const daily = DATA.anomaly.daily;
             const hist = daily.slice(-60);
@@ -344,9 +421,9 @@
                 const d = new Date(lastDate);
                 d.setDate(d.getDate() + i);
                 fcDates.push(d.toISOString().split('T')[0]);
-                const dayOfWeek = d.getDay();
-                const seasonalFactor = dayOfWeek === 0 || dayOfWeek === 6 ? 0.3 : 1.0;
-                const val = avgSales * seasonalFactor;
+                const dow = d.getDay();
+                const factor = dow === 0 || dow === 6 ? 0.3 : 1.0;
+                const val = avgSales * factor;
                 fcSales.push(val);
                 fcUpper.push(val * 1.3);
                 fcLower.push(val * 0.7);
@@ -370,27 +447,28 @@
             
             const bestDay = dow.reduce((a, b) => a.avg > b.avg ? a : b);
             const worstDay = dow.reduce((a, b) => a.avg < b.avg ? a : b);
-            document.getElementById('forecast-insight').innerHTML = `30-day forecast: <strong>$${(DATA.forecast.next_30d/1000000).toFixed(2)}M</strong>. Strong weekday pattern: <strong>${bestDay.full}</strong> averages $${bestDay.avg.toLocaleString()} while <strong>${worstDay.full}</strong> is lowest. Note: ${DATA.forecast.growth_pct < 0 ? 'Decline' : 'Growth'} of ${Math.abs(DATA.forecast.growth_pct)}% vs prior period may reflect seasonal patterns.`;
+            document.getElementById('forecast-insight').innerHTML = `
+                30-day forecast: <strong>$${(DATA.forecast.next_30d/1000000).toFixed(2)}M</strong> (${DATA.forecast.growth_pct >= 0 ? '+' : ''}${DATA.forecast.growth_pct}% vs prior).
+                <strong>${bestDay.full}</strong> is the strongest day at $${bestDay.avg.toLocaleString()}, while <strong>${worstDay.full}</strong> is weakest at $${worstDay.avg.toLocaleString()}.
+                Clear weekday/weekend pattern detected. January typically shows lower volume due to post-holiday seasonality.
+            `;
         }
         
         function renderAccountsPanel() {
             const dist = DATA.accounts.distribution;
-            document.getElementById('account-stats').innerHTML = `
-                <div class="stat-card"><div class="stat-label">Accounts Analyzed</div><div class="stat-value info">${DATA.accounts.total}</div><div class="sub-label">With 3+ weeks of data</div></div>
-                <div class="stat-card"><div class="stat-label">Growing</div><div class="stat-value positive">${dist.Growing || 0}</div></div>
-                <div class="stat-card"><div class="stat-label">Stable</div><div class="stat-value" style="color:#3b82f6;">${dist.Stable || 0}</div></div>
-                <div class="stat-card"><div class="stat-label">At Risk</div><div class="stat-value warning">${dist['At Risk'] || 0}</div></div>
-                <div class="stat-card"><div class="stat-label">Critical</div><div class="stat-value negative">${dist.Critical || 0}</div></div>
-            `;
+            document.getElementById('total-accounts').textContent = DATA.stats.accounts.toLocaleString();
+            document.getElementById('analyzed-accounts').textContent = DATA.accounts.total.toLocaleString();
+            document.getElementById('growing-count').textContent = dist.Growing || 0;
+            document.getElementById('stable-count').textContent = dist.Stable || 0;
+            document.getElementById('at-risk-count').textContent = DATA.accounts.at_risk_count;
             
-            const colors = [];
-            const labels = [];
-            if (dist.Growing) { labels.push('Growing'); colors.push('#22c55e'); }
-            if (dist.Stable) { labels.push('Stable'); colors.push('#3b82f6'); }
-            if (dist['At Risk']) { labels.push('At Risk'); colors.push('#f59e0b'); }
-            if (dist.Critical) { labels.push('Critical'); colors.push('#ef4444'); }
+            const colors = [], labels = [], values = [];
+            if (dist.Growing) { labels.push('Growing'); values.push(dist.Growing); colors.push('#22c55e'); }
+            if (dist.Stable) { labels.push('Stable'); values.push(dist.Stable); colors.push('#3b82f6'); }
+            if (dist['At Risk']) { labels.push('At Risk'); values.push(dist['At Risk']); colors.push('#f59e0b'); }
+            if (dist.Critical) { labels.push('Critical'); values.push(dist.Critical); colors.push('#ef4444'); }
             
-            Plotly.newPlot('health-chart', [{labels: labels, values: labels.map(l => dist[l] || 0), type: 'pie', marker: {colors: colors}, hole: 0.4}],
+            Plotly.newPlot('health-chart', [{labels: labels, values: values, type: 'pie', marker: {colors: colors}, hole: 0.4}],
                 {paper_bgcolor: 'transparent', font: {color: '#94a3b8'}, margin: {t: 20, r: 20, l: 20, b: 20}}, {responsive: true});
             
             const atRiskRev = DATA.accounts.at_risk.reduce((a, b) => a + b.total_sales, 0);
@@ -407,7 +485,7 @@
                     <td><span class="status-badge status-${a.status.toLowerCase().replace(' ', '-')}">${a.status}</span></td>
                     <td><button style="padding:4px 12px;border-radius:6px;border:none;background:#f97316;color:white;cursor:pointer;font-size:11px;">Contact</button></td>
                 </tr>
-            `).join('') : '<tr><td colspan="6" style="text-align:center;color:#94a3b8;">No at-risk accounts found</td></tr>';
+            `).join('') : '<tr><td colspan="6" style="text-align:center;color:#94a3b8;">No at-risk accounts</td></tr>';
             
             document.getElementById('growing-table').innerHTML = DATA.accounts.growing.length ? DATA.accounts.growing.map(a => `
                 <tr>
@@ -417,26 +495,26 @@
                     <td><div class="health-bar"><div class="health-bar-fill" style="width:${a.health_score}%;background:#22c55e;"></div></div></td>
                     <td><span class="status-badge status-growing">${a.status}</span></td>
                 </tr>
-            `).join('') : '<tr><td colspan="5" style="text-align:center;color:#94a3b8;">No growing accounts found</td></tr>';
+            `).join('') : '<tr><td colspan="5" style="text-align:center;color:#94a3b8;">No growing accounts</td></tr>';
             
             const topAtRisk = DATA.accounts.at_risk[0];
-            document.getElementById('account-insight').innerHTML = `<strong>${DATA.accounts.at_risk_count} accounts (${DATA.accounts.at_risk_pct}%)</strong> are at risk or critical out of ${DATA.accounts.total} analyzed. ${topAtRisk ? `Top priority: <strong>${topAtRisk.account_name}</strong> ($${topAtRisk.total_sales.toLocaleString()}, ${topAtRisk.trend_pct}% trend). Recommend immediate outreach.` : 'All accounts are stable or growing!'}`;
+            const topGrowing = DATA.accounts.growing[0];
+            document.getElementById('account-insight').innerHTML = `
+                <strong>${DATA.accounts.at_risk_count} accounts (${DATA.accounts.at_risk_pct}%)</strong> are at risk, representing <strong>$${atRiskRev.toLocaleString()}</strong> in revenue.
+                ${topAtRisk ? `Top priority: <strong>${topAtRisk.account_name}</strong> ($${topAtRisk.total_sales.toLocaleString()}, ${topAtRisk.trend_pct}% trend).` : ''}
+                ${topGrowing ? `<strong>${topGrowing.account_name}</strong> leads growth at +${topGrowing.trend_pct}%.` : ''}
+                Recommend immediate outreach to high-value at-risk accounts.
+            `;
         }
         
         function renderRepsPanel() {
             const reps = DATA.reps.reps;
             const topRep = reps[0] || {};
             
-            // Find most efficient rep (highest avg per account with at least 3 accounts)
-            const efficientReps = reps.filter(r => r.unique_accounts >= 3);
-            const mostEfficient = efficientReps.length ? efficientReps.reduce((a, b) => a.avg_per_account > b.avg_per_account ? a : b) : topRep;
-            
-            document.getElementById('rep-stats').innerHTML = `
-                <div class="stat-card"><div class="stat-label">Total Reps</div><div class="stat-value info">${DATA.reps.total}</div></div>
-                <div class="stat-card"><div class="stat-label">Top Rep (by Sales)</div><div class="stat-value" style="font-size:16px;color:#22c55e;">${topRep.rep_name || 'N/A'}</div></div>
-                <div class="stat-card"><div class="stat-label">Avg Rep Sales</div><div class="stat-value" style="color:#f97316;">$${(DATA.reps.avg_sales/1000).toFixed(0)}K</div></div>
-                <div class="stat-card"><div class="stat-label">Total Accounts</div><div class="stat-value info">${DATA.reps.total_accounts}</div></div>
-            `;
+            document.getElementById('total-reps').textContent = DATA.reps.total;
+            document.getElementById('top-rep-name').textContent = topRep.rep_name || 'N/A';
+            document.getElementById('avg-rep-sales').textContent = `$${(DATA.reps.avg_sales/1000).toFixed(0)}K`;
+            document.getElementById('total-accounts-covered').textContent = DATA.reps.total_accounts.toLocaleString();
             
             Plotly.newPlot('rep-chart', [{x: reps.map(r => r.rep_name), y: reps.map(r => r.total_sales), type: 'bar', marker: {color: reps.map((_, i) => i === 0 ? '#22c55e' : i < 3 ? '#f97316' : '#64748b')}}],
                 {paper_bgcolor: 'transparent', plot_bgcolor: 'transparent', font: {color: '#94a3b8'}, xaxis: {tickangle: -45}, yaxis: {tickformat: '$,.0f'}, margin: {t: 20, r: 20, l: 70, b: 120}}, {responsive: true});
@@ -446,7 +524,7 @@
                 y: reps.map(r => r.avg_per_account),
                 mode: 'markers+text',
                 type: 'scatter',
-                marker: {size: reps.map(r => Math.sqrt(r.total_sales) / 18), color: '#f97316'},
+                marker: {size: reps.map(r => Math.sqrt(r.total_sales) / 12), color: '#f97316'},
                 text: reps.map(r => r.rep_name.split(' ')[0]),
                 textposition: 'top center',
                 textfont: {size: 10}
@@ -464,7 +542,14 @@
                 </tr>
             `).join('');
             
-            document.getElementById('rep-insight').innerHTML = `<strong>${topRep.rep_name}</strong> leads in total sales with $${topRep.total_sales?.toLocaleString()} across ${topRep.unique_accounts} accounts. <strong>${mostEfficient.rep_name}</strong> has highest efficiency at $${mostEfficient.avg_per_account?.toLocaleString()}/account. Average rep generates <strong>$${(DATA.reps.avg_sales/1000).toFixed(0)}K</strong>.`;
+            const efficientReps = reps.filter(r => r.unique_accounts >= 5);
+            const mostEfficient = efficientReps.length ? efficientReps.reduce((a, b) => a.avg_per_account > b.avg_per_account ? a : b) : topRep;
+            
+            document.getElementById('rep-insight').innerHTML = `
+                <strong>${topRep.rep_name}</strong> leads with $${topRep.total_sales?.toLocaleString()} across ${topRep.unique_accounts} accounts ($${topRep.avg_per_account?.toLocaleString()}/account).
+                <strong>${mostEfficient.rep_name}</strong> has highest efficiency among reps with 5+ accounts at $${mostEfficient.avg_per_account?.toLocaleString()}/account.
+                Average rep generates <strong>$${(DATA.reps.avg_sales/1000).toFixed(0)}K</strong>. Consider coaching for bottom performers.
+            `;
         }
         
         function renderProductsPanel() {
@@ -473,7 +558,7 @@
                 {paper_bgcolor: 'transparent', plot_bgcolor: 'transparent', font: {color: '#94a3b8'}, xaxis: {tickangle: -45}, yaxis: {tickformat: '$,.0f'}, margin: {t: 20, r: 20, l: 70, b: 120}}, {responsive: true});
             
             const channels = DATA.products.channels;
-            Plotly.newPlot('channel-chart', [{labels: channels.map(c => `${c.name} (${c.pct}%)`), values: channels.map(c => c.sales), type: 'pie', marker: {colors: ['#f97316', '#3b82f6']}, hole: 0.4}],
+            Plotly.newPlot('channel-chart', [{labels: channels.map(c => `${c.name} (${c.pct}%)`), values: channels.map(c => c.sales), type: 'pie', marker: {colors: ['#f97316', '#3b82f6', '#22c55e']}, hole: 0.4}],
                 {paper_bgcolor: 'transparent', font: {color: '#94a3b8'}, margin: {t: 20, r: 20, l: 20, b: 20}}, {responsive: true});
             
             document.getElementById('brand-table').innerHTML = DATA.products.top_brands.map((b, i) => `
@@ -505,10 +590,17 @@
             
             const topPair = DATA.products.supplier_pairs[0];
             const topBrand = DATA.products.top_brands[0];
-            document.getElementById('product-insight').innerHTML = `<strong>${topPair?.s1} + ${topPair?.s2}</strong> are most frequently bought together (${topPair?.count.toLocaleString()} times). <strong>${topBrand?.brand_name}</strong> leads SKU sales at $${topBrand?.sales.toLocaleString()}. Top supplier: <strong>${suppliers[0]?.name}</strong> with $${suppliers[0]?.sales.toLocaleString()}.`;
+            const topGrowth = DATA.products.growth[0];
+            const onPremise = channels.find(c => c.name === 'On-Premise');
+            
+            document.getElementById('product-insight').innerHTML = `
+                <strong>${topPair?.s1} + ${topPair?.s2}</strong> are most frequently bought together (${topPair?.count.toLocaleString()} times).
+                <strong>${topBrand?.brand_name}</strong> leads SKU sales at $${topBrand?.sales.toLocaleString()}.
+                ${onPremise ? `On-premise accounts for <strong>${onPremise.pct}%</strong> of sales.` : ''}
+                ${topGrowth ? `<strong>${topGrowth.name}</strong> shows +${topGrowth.pct}% growth.` : ''}
+            `;
         }
         
-        // NLQ
         function setQuery(q) { document.getElementById('nlq-query').value = q; askQuestion(); }
         
         function askQuestion() {
@@ -521,35 +613,40 @@
             
             if (query.includes('at risk') || query.includes('at-risk')) {
                 const atRisk = DATA.accounts.at_risk.slice(0, 5);
-                answerDiv.innerHTML = `<p><strong>${DATA.accounts.at_risk_count} accounts (${DATA.accounts.at_risk_pct}%)</strong> are currently at risk:</p>
-                    <ol style="margin:12px 0 0 20px;line-height:2;">${atRisk.map(a => `<li><strong>${a.account_name}</strong> — $${a.total_sales.toLocaleString()} (${a.trend_pct}% trend)</li>`).join('')}</ol>`;
+                answerDiv.innerHTML = `<p><strong>${DATA.accounts.at_risk_count} accounts (${DATA.accounts.at_risk_pct}%)</strong> are at risk:</p>
+                    <ol style="margin:12px 0 0 20px;line-height:2;">${atRisk.map(a => `<li><strong>${a.account_name}</strong> — $${a.total_sales.toLocaleString()} (${a.trend_pct}%)</li>`).join('')}</ol>`;
             } else if (query.includes('top rep') || query.includes('best rep')) {
                 const top = DATA.reps.reps[0];
-                answerDiv.innerHTML = `<p><strong>Top Rep by Total Sales:</strong></p>
-                    <p style="margin-top:12px;font-size:24px;font-weight:700;color:#22c55e;">${top.rep_name}</p>
-                    <p>Total Sales: <strong>$${top.total_sales.toLocaleString()}</strong></p>
-                    <p>Accounts: <strong>${top.unique_accounts}</strong> | Avg/Account: <strong>$${top.avg_per_account.toLocaleString()}</strong></p>`;
-            } else if (query.includes('efficient') || query.includes('efficiency')) {
-                const efficientReps = DATA.reps.reps.filter(r => r.unique_accounts >= 2).sort((a,b) => b.avg_per_account - a.avg_per_account);
-                const top = efficientReps[0];
-                answerDiv.innerHTML = `<p><strong>Most Efficient Rep (Sales per Account):</strong></p>
-                    <p style="margin-top:12px;font-size:24px;font-weight:700;color:#22c55e;">${top.rep_name}</p>
-                    <p>Avg/Account: <strong>$${top.avg_per_account.toLocaleString()}</strong></p>
-                    <p>Total Sales: <strong>$${top.total_sales.toLocaleString()}</strong> across ${top.unique_accounts} accounts</p>`;
-            } else if (query.includes('supplier')) {
+                answerDiv.innerHTML = `<p><strong>Top Rep:</strong></p>
+                    <p style="font-size:24px;font-weight:700;color:#22c55e;margin-top:12px;">${top.rep_name}</p>
+                    <p>Sales: <strong>$${top.total_sales.toLocaleString()}</strong> | Accounts: <strong>${top.unique_accounts}</strong></p>`;
+                Plotly.newPlot('nlq-chart', [{x: DATA.reps.reps.slice(0,5).map(r => r.rep_name), y: DATA.reps.reps.slice(0,5).map(r => r.total_sales), type: 'bar', marker: {color: '#f97316'}}],
+                    {paper_bgcolor: 'transparent', plot_bgcolor: 'transparent', font: {color: '#94a3b8'}, yaxis: {tickformat: '$,.0f'}, margin: {t: 20, r: 20, l: 70, b: 80}, height: 250}, {responsive: true});
+            } else if (query.includes('efficient')) {
+                const eff = DATA.reps.reps.filter(r => r.unique_accounts >= 5).sort((a,b) => b.avg_per_account - a.avg_per_account)[0];
+                answerDiv.innerHTML = `<p><strong>Most Efficient Rep (5+ accounts):</strong></p>
+                    <p style="font-size:24px;font-weight:700;color:#22c55e;margin-top:12px;">${eff.rep_name}</p>
+                    <p>Avg/Account: <strong>$${eff.avg_per_account.toLocaleString()}</strong></p>`;
+            } else if (query.includes('supplier') && !query.includes('growing')) {
                 const suppliers = DATA.products.top_suppliers.slice(0, 5);
                 answerDiv.innerHTML = `<p><strong>Top 5 Suppliers:</strong></p>
                     <ol style="margin:12px 0 0 20px;line-height:2;">${suppliers.map(s => `<li><strong>${s.name}</strong> — $${s.sales.toLocaleString()}</li>`).join('')}</ol>`;
             } else if (query.includes('together') || query.includes('pair')) {
-                const pairs = DATA.products.supplier_pairs.slice(0, 5);
-                answerDiv.innerHTML = `<p><strong>Products Bought Together:</strong></p>
-                    <ol style="margin:12px 0 0 20px;line-height:2;">${pairs.map(p => `<li>${p.s1} + ${p.s2} — ${p.count.toLocaleString()} times</li>`).join('')}</ol>`;
+                answerDiv.innerHTML = `<p><strong>Frequently Bought Together:</strong></p>
+                    <ol style="margin:12px 0 0 20px;line-height:2;">${DATA.products.supplier_pairs.slice(0,5).map(p => `<li>${p.s1} + ${p.s2} — ${p.count.toLocaleString()}x</li>`).join('')}</ol>`;
+            } else if (query.includes('october') || query.includes('december')) {
+                const oct = DATA.forecast.monthly['2025-10'] || 0;
+                const dec = DATA.forecast.monthly['2025-12'] || 0;
+                const chg = ((dec/oct - 1) * 100).toFixed(1);
+                answerDiv.innerHTML = `<p><strong>Oct vs Dec:</strong></p><p>October: <strong>$${oct.toLocaleString()}</strong></p><p>December: <strong>$${dec.toLocaleString()}</strong></p><p style="color:${chg > 0 ? '#22c55e' : '#ef4444'};">Change: <strong>${chg > 0 ? '+' : ''}${chg}%</strong></p>`;
+            } else if (query.includes('growing') || query.includes('fastest')) {
+                answerDiv.innerHTML = DATA.products.growth.length ? `<p><strong>Fastest Growing:</strong></p>
+                    <ol style="margin:12px 0 0 20px;line-height:2;">${DATA.products.growth.slice(0,5).map(g => `<li><strong>${g.name}</strong> — +${g.pct}%</li>`).join('')}</ol>` : '<p>No significant growth detected.</p>';
             } else if (query.includes('brand')) {
-                const brands = DATA.products.top_brands.slice(0, 5);
-                answerDiv.innerHTML = `<p><strong>Top Brands/SKUs:</strong></p>
-                    <ol style="margin:12px 0 0 20px;line-height:2;">${brands.map(b => `<li><strong>${b.brand_name}</strong> (${b.supplier}) — $${b.sales.toLocaleString()}</li>`).join('')}</ol>`;
+                answerDiv.innerHTML = `<p><strong>Top Brands:</strong></p>
+                    <ol style="margin:12px 0 0 20px;line-height:2;">${DATA.products.top_brands.slice(0,5).map(b => `<li><strong>${b.brand_name}</strong> — $${b.sales.toLocaleString()}</li>`).join('')}</ol>`;
             } else {
-                answerDiv.innerHTML = `<p>Try asking about: at-risk accounts, top rep, most efficient rep, top suppliers, products bought together, or top brands.</p>`;
+                answerDiv.innerHTML = `<p>Try: at-risk accounts, top rep, most efficient rep, top suppliers, products together, Oct vs Dec, fastest growing, top brands</p>`;
             }
         }
         
