@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tara Spinning Mill — Cotton MIS</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0F1117;
+    --surface: #181B24;
+    --surface-2: #1E2230;
+    --surface-3: #252A38;
+    --border: #2A2F3E;
+    --text: #E8EAF0;
+    --text-dim: #8B90A0;
+    --text-muted: #5A5F70;
+    --accent: #4F8CFF;
+    --accent-glow: rgba(79, 140, 255, 0.15);
+    --green: #34D399;
+    --green-dim: rgba(52, 211, 153, 0.12);
+    --amber: #FBBF24;
+    --amber-dim: rgba(251, 191, 36, 0.12);
+    --red: #F87171;
+    --red-dim: rgba(248, 113, 113, 0.12);
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ─── Layout ─── */
+  .shell { display: flex; min-height: 100vh; }
+  
+  .sidebar {
+    width: 240px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 10;
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    padding: 0 8px 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .logo span { color: var(--accent); }
+
+  .nav-section { margin-bottom: 24px; }
+  .nav-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    padding: 0 12px;
+    margin-bottom: 8px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+  .nav-item:hover { background: var(--surface-2); color: var(--text); }
+  .nav-item.active { background: var(--accent-glow); color: var(--accent); }
+  .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+  .user-badge {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--surface-2);
+  }
+  .user-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px; color: #fff;
+  }
+  .user-info { font-size: 13px; }
+  .user-info .role { font-size: 11px; color: var(--text-muted); }
+
+  .main { flex: 1; margin-left: 240px; }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  .topbar h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .topbar-actions { display: flex; gap: 12px; align-items: center; }
+
+  .page-tabs {
+    display: flex;
+    gap: 0;
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 3px;
+  }
+  .page-tab {
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    background: none;
+  }
+  .page-tab.active { background: var(--accent); color: #fff; }
+  .page-tab:hover:not(.active) { color: var(--text); }
+
+  .content { padding: 28px 32px; }
+
+  /* ─── Cards & Metrics ─── */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+  .metric-card:hover { border-color: var(--accent); }
+  .metric-label { font-size: 12px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .metric-value { font-size: 28px; font-weight: 700; margin: 6px 0 4px; font-family: 'DM Sans', sans-serif; }
+  .metric-sub { font-size: 12px; color: var(--text-dim); }
+  
+  .metric-card.green .metric-value { color: var(--green); }
+  .metric-card.amber .metric-value { color: var(--amber); }
+  .metric-card.red .metric-value { color: var(--red); }
+
+  /* ─── Section ─── */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title { font-size: 16px; font-weight: 600; }
+  .section-body { padding: 22px; }
+
+  /* ─── Table ─── */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 14px;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface-2); }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .badge.green { background: var(--green-dim); color: var(--green); }
+  .badge.amber { background: var(--amber-dim); color: var(--amber); }
+  .badge.red { background: var(--red-dim); color: var(--red); }
+  .badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .badge.green .badge-dot { background: var(--green); }
+  .badge.amber .badge-dot { background: var(--amber); }
+  .badge.red .badge-dot { background: var(--red); }
+
+  /* ─── Instruction Card (MD) ─── */
+  .instruction-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .instruction-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+  }
+  .instruction-card.status-safe::before { background: var(--green); }
+  .instruction-card.status-warning::before { background: var(--amber); }
+  .instruction-card.status-critical::before { background: var(--red); }
+
+  .instruction-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .instruction-name { font-weight: 600; font-size: 15px; }
+  .instruction-date { font-size: 12px; color: var(--text-muted); }
+
+  .mix-bar {
+    display: flex;
+    height: 32px;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 14px;
+    gap: 2px;
+  }
+  .mix-segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    min-width: 40px;
+    transition: flex 0.3s;
+  }
+
+  .time-left-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+  }
+  .time-left-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--surface-3);
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  .time-left-item .origin { color: var(--text-dim); }
+  .time-left-item .days { font-weight: 700; }
+  .time-left-item .days.green { color: var(--green); }
+  .time-left-item .days.amber { color: var(--amber); }
+  .time-left-item .days.red { color: var(--red); }
+
+  /* ─── Buttons ─── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #3A7AEE; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn svg { width: 16px; height: 16px; }
+
+  /* ─── Progress Bar ─── */
+  .progress-track {
+    height: 6px;
+    background: var(--surface-3);
+    border-radius: 3px;
+    overflow: hidden;
+    width: 100px;
+  }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+  .progress-fill.green { background: var(--green); }
+  .progress-fill.amber { background: var(--amber); }
+  .progress-fill.red { background: var(--red); }
+
+  /* ─── Page visibility ─── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ─── Form elements ─── */
+  .form-row { display: flex; gap: 16px; margin-bottom: 16px; align-items: end; }
+  .form-group { flex: 1; }
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .form-group input, .form-group select {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+
+  /* ─── Stock Movement Log ─── */
+  .movement-tag {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .movement-tag.in { background: var(--green-dim); color: var(--green); }
+  .movement-tag.out { background: var(--red-dim); color: var(--red); }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 1100px) {
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ─── Animations ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .content { animation: fadeUp 0.4s ease-out; }
+
+  /* ─── Decision Banner ─── */
+  .decision-banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    border-radius: var(--radius);
+    margin-bottom: 24px;
+    border: 1px solid;
+  }
+  .decision-banner.alert {
+    background: var(--red-dim);
+    border-color: rgba(248, 113, 113, 0.25);
+  }
+  .decision-banner.warning {
+    background: var(--amber-dim);
+    border-color: rgba(251, 191, 36, 0.25);
+  }
+  .decision-banner .banner-icon {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .decision-banner.alert .banner-icon { background: rgba(248,113,113,0.2); }
+  .decision-banner.warning .banner-icon { background: rgba(251,191,36,0.2); }
+  .banner-text { font-size: 14px; color: var(--text); }
+  .banner-text strong { font-weight: 600; }
+  .banner-text .sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">Tara <span>MIS</span></div>
+    
+    <div class="nav-section">
+      <div class="nav-label">MD View</div>
+      <a class="nav-item active" onclick="showPage('dashboard')" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+      <a class="nav-item" onclick="showPage('instructions')" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Instructions
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Factory</div>
+      <a class="nav-item" onclick="showPage('stock')" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0022 16z"/><polyline points="3.27,6.96 12,12.01 20.73,6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        Stock Entry
+      </a>
+      <a class="nav-item" onclick="showPage('ledger')" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Stock Ledger
+      </a>
+    </div>
+
+    <div class="user-badge">
+      <div class="user-avatar">MD</div>
+      <div class="user-info">
+        <div>Managing Director</div>
+        <div class="role">Admin Access</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main">
+    <!-- ════════════════════════════════════════════ -->
+    <!-- PAGE: MD Dashboard                          -->
+    <!-- ════════════════════════════════════════════ -->
+    <div id="page-dashboard" class="page active">
+      <div class="topbar">
+        <h1>Cotton Dashboard</h1>
+        <div class="topbar-actions">
+          <span style="font-size:13px;color:var(--text-muted);">Today: 9 Feb 2026</span>
+          <button class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Instruction
+          </button>
+        </div>
+      </div>
+      <div class="content">
+        <!-- Decision Banners -->
+        <div class="decision-banner alert">
+          <div class="banner-icon">⚠</div>
+          <div class="banner-text">
+            <strong>USA Pima cotton will run out in ~5 days</strong>
+            <div class="sub">Current instruction "INS-2026-003" uses 10% USA Pima. Consider opening LC or changing mix.</div>
+          </div>
+          <button class="btn btn-outline" style="margin-left:auto;flex-shrink:0;">Open LC</button>
+          <button class="btn btn-outline" style="flex-shrink:0;">Change Mix</button>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">Total Stock</div>
+            <div class="metric-value">1,247 <span style="font-size:14px;font-weight:400;color:var(--text-dim)">bales</span></div>
+            <div class="metric-sub">≈ 248,400 kg</div>
+          </div>
+          <div class="metric-card green">
+            <div class="metric-label">Brazil (CIS)</div>
+            <div class="metric-value">843</div>
+            <div class="metric-sub">~62 days left at current mix</div>
+          </div>
+          <div class="metric-card red">
+            <div class="metric-label">USA (Pima)</div>
+            <div class="metric-value">38</div>
+            <div class="metric-sub">~5 days left — ACTION NEEDED</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Daily Consumption</div>
+            <div class="metric-value">42 <span style="font-size:14px;font-weight:400;color:var(--text-dim)">bales/day</span></div>
+            <div class="metric-sub">Avg last 7 days</div>
+          </div>
+        </div>
+
+        <!-- Active Instruction -->
+        <div class="section">
+          <div class="section-header">
+            <div class="section-title">Active Instruction — INS-2026-003</div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span style="font-size:12px;color:var(--text-muted);">Effective since: 15 Jan 2026</span>
+              <button class="btn btn-outline">Edit</button>
+            </div>
+          </div>
+          <div class="section-body">
+            <!-- Visual Mix Bar -->
+            <div style="margin-bottom:6px;font-size:12px;color:var(--text-muted);font-weight:600;">MIXING RATIO</div>
+            <div class="mix-bar">
+              <div class="mix-segment" style="flex:90;background:#2E7D32;">Brazil CIS 90%</div>
+              <div class="mix-segment" style="flex:10;background:#1565C0;">USA Pima 10%</div>
+            </div>
+
+            <!-- Time Left per Origin -->
+            <div style="margin-top:18px;margin-bottom:8px;font-size:12px;color:var(--text-muted);font-weight:600;">TIME LEFT BY ORIGIN (at current consumption rate)</div>
+            <div class="time-left-grid">
+              <div class="time-left-item">
+                <div>
+                  <div class="origin">🇧🇷 Brazil CIS</div>
+                  <div style="font-size:11px;color:var(--text-muted);">843 bales @ 37.8 bales/day</div>
+                </div>
+                <div class="days green">62 days</div>
+              </div>
+              <div class="time-left-item">
+                <div>
+                  <div class="origin">🇺🇸 USA Pima</div>
+                  <div style="font-size:11px;color:var(--text-muted);">38 bales @ 4.2 bales/day</div>
+                </div>
+                <div class="days red">5 days ⚠</div>
+              </div>
+            </div>
+
+            <!-- Consumption Trend Mini Chart -->
+            <div style="margin-top:24px;">
+              <div style="margin-bottom:8px;font-size:12px;color:var(--text-muted);font-weight:600;">CONSUMPTION — LAST 7 DAYS</div>
+              <div style="display:flex;align-items:end;gap:6px;height:80px;">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;">
+                  <div style="width:100%;background:var(--accent);border-radius:4px 4px 0 0;height:65px;opacity:0.7;"></div>
+                  <span style="font-size:10px;color:var(--text-muted);">Mon</span>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;">
+                  <div style="width:100%;background:var(--accent);border-radius:4px 4px 0 0;height:52px;opacity:0.7;"></div>
+                  <span style="font-size:10px;color:var(--text-muted);">Tue</span>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;">
+                  <div style="width:100%;background:var(--accent);border-radius:4px 4px 0 0;height:70px;opacity:0.8;"></div>
+                  <span style="font-size:10px;color:var(--text-muted);">Wed</span>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;">
+                  <div style="width:100%;background:var(--accent);border-radius:4px 4px 0 0;height:58px;opacity:0.75;"></div>
+                  <span style="font-size:10px;color:var(--text-muted);">Thu</span>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;">
+                  <div style="width:100%;background:var(--accent);border-radius:4px 4px 0 0;height:72px;opacity:0.85;"></div>
+                  <span style="font-size:10px;color:var(--text-muted);">Fri</span>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;">
+                  <div style="width:100%;background:var(--accent);border-radius:4px 4px 0 0;height:45px;opacity:0.65;"></div>
+                  <span style="font-size:10px;color:var(--text-muted);">Sat</span>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;">
+                  <div style="width:100%;background:var(--accent);border-radius:4px 4px 0 0;height:42px;opacity:0.9;"></div>
+                  <span style="font-size:10px;color:var(--text-muted);">Sun</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stock by Origin -->
+        <div class="section">
+          <div class="section-header">
+            <div class="section-title">Stock by Origin</div>
+            <button class="btn btn-outline">Export</button>
+          </div>
+          <div class="section-body" style="padding:0;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Origin</th>
+                  <th>Grade</th>
+                  <th>In Stock (Bales)</th>
+                  <th>Weight (kg)</th>
+                  <th>Mix %</th>
+                  <th>Daily Use</th>
+                  <th>Days Left</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="color:var(--text);font-weight:500;">🇧🇷 Brazil CIS</td>
+                  <td>SM 1-1/8"</td>
+                  <td style="color:var(--text);font-weight:600;">843</td>
+                  <td>168,600</td>
+                  <td>90%</td>
+                  <td>37.8</td>
+                  <td style="font-weight:700;color:var(--green);">62</td>
+                  <td><span class="badge green"><span class="badge-dot"></span>Safe</span></td>
+                </tr>
+                <tr>
+                  <td style="color:var(--text);font-weight:500;">🇺🇸 USA Pima</td>
+                  <td>Grade 2</td>
+                  <td style="color:var(--text);font-weight:600;">38</td>
+                  <td>7,600</td>
+                  <td>10%</td>
+                  <td>4.2</td>
+                  <td style="font-weight:700;color:var(--red);">5</td>
+                  <td><span class="badge red"><span class="badge-dot"></span>Critical</span></td>
+                </tr>
+                <tr>
+                  <td style="color:var(--text);font-weight:500;">🇮🇳 Indian DCH</td>
+                  <td>S-6</td>
+                  <td style="color:var(--text);font-weight:600;">212</td>
+                  <td>42,400</td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td style="color:var(--text-muted);">Not in use</td>
+                  <td><span class="badge amber"><span class="badge-dot"></span>Reserve</span></td>
+                </tr>
+                <tr>
+                  <td style="color:var(--text);font-weight:500;">🇦🇺 Australian</td>
+                  <td>Premium</td>
+                  <td style="color:var(--text);font-weight:600;">154</td>
+                  <td>30,800</td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td style="color:var(--text-muted);">Not in use</td>
+                  <td><span class="badge amber"><span class="badge-dot"></span>Reserve</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════ -->
+    <!-- PAGE: Instructions (MD)                      -->
+    <!-- ════════════════════════════════════════════ -->
+    <div id="page-instructions" class="page">
+      <div class="topbar">
+        <h1>Mixing Instructions</h1>
+        <div class="topbar-actions">
+          <button class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Instruction
+          </button>
+        </div>
+      </div>
+      <div class="content">
+        <!-- Active Instruction -->
+        <div style="margin-bottom:8px;font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;">Active</div>
+        <div class="instruction-card status-warning">
+          <div class="instruction-header">
+            <div>
+              <div class="instruction-name">INS-2026-003 — Brazil + USA Mix</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Count: 30s Combed · Product: Export Yarn</div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <span class="badge amber"><span class="badge-dot"></span>Warning — USA low</span>
+              <button class="btn btn-outline">Edit</button>
+            </div>
+          </div>
+          <div class="mix-bar">
+            <div class="mix-segment" style="flex:90;background:#2E7D32;">Brazil CIS 90%</div>
+            <div class="mix-segment" style="flex:10;background:#1565C0;">USA Pima 10%</div>
+          </div>
+          <div class="time-left-grid">
+            <div class="time-left-item">
+              <span class="origin">🇧🇷 Brazil CIS</span>
+              <span class="days green">62 days</span>
+            </div>
+            <div class="time-left-item">
+              <span class="origin">🇺🇸 USA Pima</span>
+              <span class="days red">5 days ⚠</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Past Instructions -->
+        <div style="margin-top:32px;margin-bottom:8px;font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;">History</div>
+        <div class="instruction-card status-safe" style="opacity:0.7;">
+          <div class="instruction-header">
+            <div>
+              <div class="instruction-name">INS-2026-002 — India + Brazil Mix</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Count: 20s Carded · Product: Local Yarn</div>
+            </div>
+            <div>
+              <span style="font-size:12px;color:var(--text-muted);">1 Nov 2025 → 14 Jan 2026</span>
+            </div>
+          </div>
+          <div class="mix-bar" style="height:24px;">
+            <div class="mix-segment" style="flex:70;background:#E65100;font-size:10px;">India DCH 70%</div>
+            <div class="mix-segment" style="flex:30;background:#2E7D32;font-size:10px;">Brazil CIS 30%</div>
+          </div>
+        </div>
+
+        <div class="instruction-card status-safe" style="opacity:0.5;">
+          <div class="instruction-header">
+            <div>
+              <div class="instruction-name">INS-2026-001 — 100% Brazil</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Count: 30s Combed · Product: Export Yarn</div>
+            </div>
+            <div>
+              <span style="font-size:12px;color:var(--text-muted);">1 Aug 2025 → 31 Oct 2025</span>
+            </div>
+          </div>
+          <div class="mix-bar" style="height:24px;">
+            <div class="mix-segment" style="flex:100;background:#2E7D32;font-size:10px;">Brazil CIS 100%</div>
+          </div>
+        </div>
+
+        <!-- New Instruction Form -->
+        <div style="margin-top:40px;">
+          <div style="margin-bottom:12px;font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;">Create New Instruction</div>
+          <div class="section">
+            <div class="section-body">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Instruction Name</label>
+                  <input type="text" placeholder="e.g. Brazil + India Mix">
+                </div>
+                <div class="form-group">
+                  <label>Count / Product</label>
+                  <input type="text" placeholder="e.g. 30s Combed — Export Yarn">
+                </div>
+                <div class="form-group">
+                  <label>Effective Date</label>
+                  <input type="date" value="2026-02-10">
+                </div>
+              </div>
+              <div style="margin-bottom:8px;font-size:12px;color:var(--text-muted);font-weight:600;">MIX COMPONENTS</div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Origin 1</label>
+                  <select>
+                    <option>Brazil CIS</option>
+                    <option>USA Pima</option>
+                    <option>Indian DCH</option>
+                    <option>Australian Premium</option>
+                  </select>
+                </div>
+                <div class="form-group" style="max-width:100px;">
+                  <label>Ratio %</label>
+                  <input type="number" value="80">
+                </div>
+                <div class="form-group">
+                  <label>Origin 2</label>
+                  <select>
+                    <option>Indian DCH</option>
+                    <option>Brazil CIS</option>
+                    <option>USA Pima</option>
+                    <option>Australian Premium</option>
+                  </select>
+                </div>
+                <div class="form-group" style="max-width:100px;">
+                  <label>Ratio %</label>
+                  <input type="number" value="20">
+                </div>
+                <button class="btn btn-outline" style="margin-bottom:4px;">+ Add</button>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+                <div style="font-size:13px;color:var(--text-dim);">
+                  Preview: At this ratio, <strong style="color:var(--green);">Brazil CIS → ~56 days</strong> · <strong style="color:var(--green);">Indian DCH → ~50 days</strong>
+                </div>
+                <button class="btn btn-primary">Save Instruction</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════ -->
+    <!-- PAGE: Stock Entry (Factory)                  -->
+    <!-- ════════════════════════════════════════════ -->
+    <div id="page-stock" class="page">
+      <div class="topbar">
+        <h1>Daily Stock Entry</h1>
+        <div class="topbar-actions">
+          <span style="font-size:13px;color:var(--text-muted);">Today: 9 Feb 2026</span>
+        </div>
+      </div>
+      <div class="content">
+        <!-- Quick Entry -->
+        <div class="section">
+          <div class="section-header">
+            <div class="section-title">Record Cotton Movement</div>
+            <div class="page-tabs">
+              <button class="page-tab active">Received (In)</button>
+              <button class="page-tab">Consumption (Out)</button>
+            </div>
+          </div>
+          <div class="section-body">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Cotton Origin</label>
+                <select>
+                  <option>Brazil CIS — SM 1-1/8"</option>
+                  <option>USA Pima — Grade 2</option>
+                  <option>Indian DCH — S-6</option>
+                  <option>Australian — Premium</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Quantity (Bales)</label>
+                <input type="number" placeholder="e.g. 50">
+              </div>
+              <div class="form-group">
+                <label>Weight per Bale (kg)</label>
+                <input type="number" value="200">
+              </div>
+              <div class="form-group">
+                <label>Date</label>
+                <input type="date" value="2026-02-09">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>LC / Reference No.</label>
+                <input type="text" placeholder="e.g. LC-2026-0045">
+              </div>
+              <div class="form-group">
+                <label>Supplier</label>
+                <input type="text" placeholder="e.g. Amaggi Trading">
+              </div>
+              <div class="form-group">
+                <label>Remarks</label>
+                <input type="text" placeholder="Optional notes">
+              </div>
+              <div class="form-group" style="max-width:120px;">
+                <label>&nbsp;</label>
+                <button class="btn btn-primary" style="width:100%;justify-content:center;">Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Today's Entries -->
+        <div class="section">
+          <div class="section-header">
+            <div class="section-title">Today's Entries</div>
+            <span style="font-size:13px;color:var(--text-dim);">4 entries</span>
+          </div>
+          <div class="section-body" style="padding:0;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Type</th>
+                  <th>Origin</th>
+                  <th>Bales</th>
+                  <th>Weight</th>
+                  <th>Reference</th>
+                  <th>Entered By</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>09:15 AM</td>
+                  <td><span class="movement-tag in">IN</span></td>
+                  <td>🇧🇷 Brazil CIS</td>
+                  <td style="font-weight:600;color:var(--text);">120</td>
+                  <td>24,000 kg</td>
+                  <td>LC-2026-0045</td>
+                  <td>Rahim</td>
+                  <td><button class="btn btn-outline" style="padding:4px 10px;font-size:11px;">Edit</button></td>
+                </tr>
+                <tr>
+                  <td>10:30 AM</td>
+                  <td><span class="movement-tag out">OUT</span></td>
+                  <td>🇧🇷 Brazil CIS</td>
+                  <td style="font-weight:600;color:var(--text);">35</td>
+                  <td>7,000 kg</td>
+                  <td>Production</td>
+                  <td>Kamal</td>
+                  <td><button class="btn btn-outline" style="padding:4px 10px;font-size:11px;">Edit</button></td>
+                </tr>
+                <tr>
+                  <td>10:30 AM</td>
+                  <td><span class="movement-tag out">OUT</span></td>
+                  <td>🇺🇸 USA Pima</td>
+                  <td style="font-weight:600;color:var(--text);">4</td>
+                  <td>800 kg</td>
+                  <td>Production</td>
+                  <td>Kamal</td>
+                  <td><button class="btn btn-outline" style="padding:4px 10px;font-size:11px;">Edit</button></td>
+                </tr>
+                <tr>
+                  <td>02:45 PM</td>
+                  <td><span class="movement-tag out">OUT</span></td>
+                  <td>🇧🇷 Brazil CIS</td>
+                  <td style="font-weight:600;color:var(--text);">34</td>
+                  <td>6,800 kg</td>
+                  <td>Production</td>
+                  <td>Kamal</td>
+                  <td><button class="btn btn-outline" style="padding:4px 10px;font-size:11px;">Edit</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════ -->
+    <!-- PAGE: Stock Ledger                           -->
+    <!-- ════════════════════════════════════════════ -->
+    <div id="page-ledger" class="page">
+      <div class="topbar">
+        <h1>Stock Ledger</h1>
+        <div class="topbar-actions">
+          <div class="form-row" style="margin:0;gap:8px;">
+            <select style="padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:13px;">
+              <option>All Origins</option>
+              <option>Brazil CIS</option>
+              <option>USA Pima</option>
+              <option>Indian DCH</option>
+            </select>
+            <input type="date" value="2026-02-01" style="padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:13px;">
+            <span style="color:var(--text-muted);font-size:13px;">to</span>
+            <input type="date" value="2026-02-09" style="padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:13px;">
+            <button class="btn btn-outline">Export Excel</button>
+          </div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="section">
+          <div class="section-body" style="padding:0;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Origin</th>
+                  <th>In (Bales)</th>
+                  <th>Out (Bales)</th>
+                  <th>Balance</th>
+                  <th>Reference</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="background:var(--surface-2);">
+                  <td style="font-weight:600;color:var(--text);" colspan="4">Opening Balance — 1 Feb 2026</td>
+                  <td style="font-weight:700;color:var(--text);">1,102</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td>2 Feb</td>
+                  <td>🇧🇷 Brazil CIS</td>
+                  <td style="color:var(--green);font-weight:600;">—</td>
+                  <td style="color:var(--red);font-weight:600;">38</td>
+                  <td style="font-weight:600;">1,064</td>
+                  <td>Production</td>
+                </tr>
+                <tr>
+                  <td>2 Feb</td>
+                  <td>🇺🇸 USA Pima</td>
+                  <td style="color:var(--green);font-weight:600;">—</td>
+                  <td style="color:var(--red);font-weight:600;">4</td>
+                  <td style="font-weight:600;">1,060</td>
+                  <td>Production</td>
+                </tr>
+                <tr>
+                  <td>3 Feb</td>
+                  <td>🇧🇷 Brazil CIS</td>
+                  <td style="color:var(--green);font-weight:600;">200</td>
+                  <td style="color:var(--red);font-weight:600;">—</td>
+                  <td style="font-weight:600;">1,260</td>
+                  <td>LC-2026-0044</td>
+                </tr>
+                <tr>
+                  <td>3 Feb</td>
+                  <td>🇧🇷 Brazil CIS</td>
+                  <td style="color:var(--green);font-weight:600;">—</td>
+                  <td style="color:var(--red);font-weight:600;">36</td>
+                  <td style="font-weight:600;">1,224</td>
+                  <td>Production</td>
+                </tr>
+                <tr>
+                  <td>3 Feb</td>
+                  <td>🇺🇸 USA Pima</td>
+                  <td style="color:var(--green);font-weight:600;">—</td>
+                  <td style="color:var(--red);font-weight:600;">4</td>
+                  <td style="font-weight:600;">1,220</td>
+                  <td>Production</td>
+                </tr>
+                <tr>
+                  <td colspan="3" style="text-align:center;color:var(--text-muted);font-size:12px;">⋯ more rows ⋯</td>
+                  <td></td><td></td><td></td>
+                </tr>
+                <tr style="background:var(--surface-2);">
+                  <td style="font-weight:600;color:var(--text);" colspan="4">Closing Balance — 9 Feb 2026</td>
+                  <td style="font-weight:700;color:var(--text);">1,247</td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function showPage(page) {
+    // Hide all pages
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    // Show selected
+    document.getElementById('page-' + page).classList.add('active');
+    // Update nav
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+  }
+
+  // Tab switching within pages
+  document.querySelectorAll('.page-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      this.parentElement.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>
